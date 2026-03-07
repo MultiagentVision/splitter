@@ -1,0 +1,20 @@
+# Spliter в Ubuntu (WSL) — venv в домашней папке Linux
+
+Если скрипты выдают ошибки из-за переносов строк (set: invalid option, syntax error),
+выполни команды ниже вручную: скопируй весь блок и вставь в терминал Ubuntu.
+
+========== ОДИН РАЗ (создать venv и поставить пакеты) ==========
+
+mkdir -p ~/.venvs
+python3 -m venv ~/.venvs/spliter3
+~/.venvs/spliter3/bin/pip install --upgrade pip
+~/.venvs/spliter3/bin/pip install -r /mnt/d/AiChess/spliter3/spliter/requirements.txt
+
+========== КАЖДЫЙ ЗАПУСК ==========
+
+cd /mnt/d/AiChess/spliter3/spliter
+~/.venvs/spliter3/bin/python main.py --defaults
+
+========== Или одной строкой ==========
+
+~/.venvs/spliter3/bin/python /mnt/d/AiChess/spliter3/spliter/main.py --defaults

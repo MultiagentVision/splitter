@@ -1,0 +1,23 @@
+# Credentials - never commit
+.env
+*.env
+!*.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.venv*/
+spliter/.venv*/
+.venv_mac/
+venv/
+
+# Local state
+minio_processed.json
+
+# Generated
+spliter/cache_h265/
+spliter/logs/
+spliter/output/
+*.zip
+__MACOSX/

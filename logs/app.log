@@ -1,0 +1,296 @@
+2026-02-03 10:47:19,250 [INFO] MainProcess - Logging initialized
+2026-02-03 10:47:19,250 [INFO] MainProcess - Запуск multiprocessing с 1 процессами
+2026-02-03 10:47:21,053 [INFO] SpawnPoolWorker-1 - Logging initialized
+2026-02-03 10:47:21,053 [INFO] SpawnPoolWorker-1 - Обработка видео: videos\W_26.mp4
+2026-02-03 10:47:21,126 [INFO] SpawnPoolWorker-1 - Источник videos\W_26.mp4: FPS=25.00, кадры=129337, длительность=86.22 мин
+2026-02-03 10:47:21,126 [INFO] SpawnPoolWorker-1 - Редкий режим: выбрано 5 индексов кадров
+2026-02-03 10:47:21,128 [INFO] SpawnPoolWorker-1 - Пайплайн Albumentations создан
+2026-02-03 10:47:21,128 [INFO] SpawnPoolWorker-1 - Видео W_26: длительность 86.22 мин, режим=rare, кадров для извлечения=5
+2026-02-03 10:47:21,250 [INFO] SpawnPoolWorker-1 - JPEG сохранён: output\W_26\jpeg\W_26_00001.jpg
+2026-02-03 10:47:21,334 [INFO] SpawnPoolWorker-1 - PNG сохранён: output\W_26\png\W_26_00001.png
+2026-02-03 10:49:56,162 [INFO] SpawnPoolWorker-1 - JPEG сохранён: output\W_26\jpeg\W_26_00002.jpg
+2026-02-03 10:49:56,184 [INFO] SpawnPoolWorker-1 - PNG сохранён: output\W_26\png\W_26_00002.png
+2026-02-03 10:52:34,413 [INFO] SpawnPoolWorker-1 - JPEG сохранён: output\W_26\jpeg\W_26_00003.jpg
+2026-02-03 10:52:34,441 [INFO] SpawnPoolWorker-1 - PNG сохранён: output\W_26\png\W_26_00003.png
+2026-02-03 10:53:42,313 [INFO] SpawnPoolWorker-1 - JPEG сохранён: output\W_26\jpeg\W_26_00004.jpg
+2026-02-03 10:53:42,394 [INFO] SpawnPoolWorker-1 - PNG сохранён: output\W_26\png\W_26_00004.png
+2026-02-03 10:54:50,990 [INFO] SpawnPoolWorker-1 - JPEG сохранён: output\W_26\jpeg\W_26_00005.jpg
+2026-02-03 10:54:51,084 [INFO] SpawnPoolWorker-1 - PNG сохранён: output\W_26\png\W_26_00005.png
+2026-02-03 10:54:51,098 [INFO] SpawnPoolWorker-1 - Готово: W_26, сохранено кадров: 5
+2026-02-03 11:16:09,649 [INFO] MainProcess - Logging initialized
+2026-02-03 11:16:09,650 [INFO] MainProcess - Запуск multiprocessing с 1 процессами
+2026-02-03 11:16:11,373 [INFO] SpawnPoolWorker-1 - Logging initialized
+2026-02-03 11:16:11,373 [INFO] SpawnPoolWorker-1 - Video processing: videos\W_26.mp4
+2026-02-03 11:16:11,411 [INFO] SpawnPoolWorker-1 - Source videos\W_26.mp4: FPS=25.00, frames=129337, duration=86.22 min
+2026-02-03 11:16:11,411 [INFO] SpawnPoolWorker-1 - Редкий режим: выбрано 5 индексов кадров
+2026-02-03 11:16:11,413 [INFO] SpawnPoolWorker-1 - Pypeline of Albumentations created
+2026-02-03 11:16:11,413 [INFO] SpawnPoolWorker-1 - Video W_26: duration 86.22 min, mode=rare, frames to extract=5
+2026-02-03 11:16:11,459 [INFO] SpawnPoolWorker-1 - JPEG saved: output\W_26\jpeg\W_26_00001.jpg
+2026-02-03 11:16:11,469 [INFO] SpawnPoolWorker-1 - PNG saved: output\W_26\png\W_26_00001.png
+2026-02-03 11:18:55,439 [INFO] SpawnPoolWorker-1 - JPEG saved: output\W_26\jpeg\W_26_00002.jpg
+2026-02-03 11:18:55,463 [INFO] SpawnPoolWorker-1 - PNG saved: output\W_26\png\W_26_00002.png
+2026-02-03 11:21:45,511 [INFO] SpawnPoolWorker-1 - JPEG saved: output\W_26\jpeg\W_26_00003.jpg
+2026-02-03 11:21:45,594 [INFO] SpawnPoolWorker-1 - PNG saved: output\W_26\png\W_26_00003.png
+2026-02-03 11:23:05,107 [INFO] SpawnPoolWorker-1 - JPEG saved: output\W_26\jpeg\W_26_00004.jpg
+2026-02-03 11:23:05,142 [INFO] SpawnPoolWorker-1 - PNG saved: output\W_26\png\W_26_00004.png
+2026-02-03 12:08:13,789 [INFO] MainProcess - Logging initialized
+2026-02-03 12:08:13,789 [INFO] MainProcess - Запуск multiprocessing с 1 процессами
+2026-02-03 12:08:15,515 [INFO] SpawnPoolWorker-1 - Logging initialized
+2026-02-03 12:08:15,515 [INFO] SpawnPoolWorker-1 - Обработка видео: videos\W_26.mp4
+2026-02-03 12:08:15,555 [INFO] SpawnPoolWorker-1 - Source videos\W_26.mp4: FPS=25.00, frames=129337, duration=86.22 min
+2026-02-03 12:08:15,555 [INFO] SpawnPoolWorker-1 - Редкий режим: выбрано 5 индексов кадров
+2026-02-03 12:08:15,557 [INFO] SpawnPoolWorker-1 - Pypeline of Albumentations created
+2026-02-03 12:08:15,558 [INFO] SpawnPoolWorker-1 - Видео W_26: длительность 86.22 мин, режим=rare, кадров=5, seek=False, ffmpeg=False
+2026-02-03 12:08:15,595 [INFO] SpawnPoolWorker-1 - Кадр 0 отброшен как повреждённый
+2026-02-03 12:11:23,149 [INFO] MainProcess - Logging initialized
+2026-02-03 12:11:23,149 [INFO] MainProcess - Запуск multiprocessing с 1 процессами
+2026-02-03 12:11:24,890 [INFO] SpawnPoolWorker-1 - Logging initialized
+2026-02-03 12:11:24,890 [INFO] SpawnPoolWorker-1 - Обработка видео: videos\W_26.mp4
+2026-02-03 12:11:24,930 [INFO] SpawnPoolWorker-1 - Source videos\W_26.mp4: FPS=25.00, frames=129337, duration=86.22 min
+2026-02-03 12:11:24,931 [INFO] SpawnPoolWorker-1 - Частый режим: выбрано 88 индексов кадров
+2026-02-03 12:11:24,933 [INFO] SpawnPoolWorker-1 - Pypeline of Albumentations created
+2026-02-03 12:11:24,933 [INFO] SpawnPoolWorker-1 - Видео W_26: длительность 86.22 мин, режим=frequent, кадров=88, seek=False, ffmpeg=False
+2026-02-03 12:11:24,969 [INFO] SpawnPoolWorker-1 - Кадр 0 отброшен как повреждённый
+2026-02-03 12:11:30,281 [INFO] SpawnPoolWorker-1 - JPEG saved: output\W_26\jpeg\W_26_00001.jpg
+2026-02-03 12:11:30,354 [INFO] SpawnPoolWorker-1 - PNG saved: output\W_26\png\W_26_00001.png
+2026-02-03 12:11:35,650 [INFO] SpawnPoolWorker-1 - JPEG saved: output\W_26\jpeg\W_26_00002.jpg
+2026-02-03 12:11:35,727 [INFO] SpawnPoolWorker-1 - PNG saved: output\W_26\png\W_26_00002.png
+2026-02-03 12:11:40,953 [INFO] SpawnPoolWorker-1 - JPEG saved: output\W_26\jpeg\W_26_00003.jpg
+2026-02-03 12:11:40,972 [INFO] SpawnPoolWorker-1 - PNG saved: output\W_26\png\W_26_00003.png
+2026-02-03 12:11:46,675 [INFO] SpawnPoolWorker-1 - JPEG saved: output\W_26\jpeg\W_26_00004.jpg
+2026-02-03 12:11:46,696 [INFO] SpawnPoolWorker-1 - PNG saved: output\W_26\png\W_26_00004.png
+2026-02-03 12:11:52,723 [INFO] SpawnPoolWorker-1 - JPEG saved: output\W_26\jpeg\W_26_00005.jpg
+2026-02-03 12:11:52,804 [INFO] SpawnPoolWorker-1 - PNG saved: output\W_26\png\W_26_00005.png
+2026-02-03 12:11:58,903 [INFO] SpawnPoolWorker-1 - JPEG saved: output\W_26\jpeg\W_26_00006.jpg
+2026-02-03 12:11:58,922 [INFO] SpawnPoolWorker-1 - PNG saved: output\W_26\png\W_26_00006.png
+2026-02-03 12:12:05,167 [INFO] SpawnPoolWorker-1 - JPEG saved: output\W_26\jpeg\W_26_00007.jpg
+2026-02-03 12:12:05,254 [INFO] SpawnPoolWorker-1 - PNG saved: output\W_26\png\W_26_00007.png
+2026-02-03 12:12:11,411 [INFO] SpawnPoolWorker-1 - JPEG saved: output\W_26\jpeg\W_26_00008.jpg
+2026-02-03 12:12:11,429 [INFO] SpawnPoolWorker-1 - PNG saved: output\W_26\png\W_26_00008.png
+2026-02-03 12:12:18,151 [INFO] SpawnPoolWorker-1 - JPEG saved: output\W_26\jpeg\W_26_00009.jpg
+2026-02-03 12:12:18,169 [INFO] SpawnPoolWorker-1 - PNG saved: output\W_26\png\W_26_00009.png
+2026-02-03 12:12:24,086 [INFO] SpawnPoolWorker-1 - JPEG saved: output\W_26\jpeg\W_26_00010.jpg
+2026-02-03 12:12:24,167 [INFO] SpawnPoolWorker-1 - PNG saved: output\W_26\png\W_26_00010.png
+2026-02-03 12:12:29,756 [INFO] SpawnPoolWorker-1 - JPEG saved: output\W_26\jpeg\W_26_00011.jpg
+2026-02-03 12:12:29,780 [INFO] SpawnPoolWorker-1 - PNG saved: output\W_26\png\W_26_00011.png
+2026-02-03 12:12:35,645 [INFO] SpawnPoolWorker-1 - JPEG saved: output\W_26\jpeg\W_26_00012.jpg
+2026-02-03 12:12:35,666 [INFO] SpawnPoolWorker-1 - PNG saved: output\W_26\png\W_26_00012.png
+2026-02-03 12:26:00,104 [INFO] MainProcess - Logging initialized
+2026-02-03 12:26:00,104 [INFO] MainProcess - Запуск multiprocessing с 1 процессами
+2026-02-03 12:26:01,870 [INFO] SpawnPoolWorker-1 - Logging initialized
+2026-02-03 12:26:01,870 [INFO] SpawnPoolWorker-1 - Обработка видео: videos\W_26.mp4
+2026-02-03 12:26:01,921 [INFO] SpawnPoolWorker-1 - Source videos\W_26.mp4: FPS=25.00, frames=129337, duration=86.22 min
+2026-02-03 12:26:01,922 [INFO] SpawnPoolWorker-1 - Редкий режим: выбрано 5 индексов кадров
+2026-02-03 12:26:01,922 [INFO] SpawnPoolWorker-1 - Индексы для режима rare: [0, 45000, 89999, 109668, 129335]
+2026-02-03 12:26:01,925 [INFO] SpawnPoolWorker-1 - Pypeline of Albumentations created
+2026-02-03 12:26:01,925 [INFO] SpawnPoolWorker-1 - Видео W_26: длительность 86.22 мин, режим=rare, кадров=5, качество=medium, порог=35, seek=False, ffmpeg=False
+2026-02-03 12:26:01,971 [INFO] SpawnPoolWorker-1 - Кадр 0 отброшен как повреждённый
+2026-02-03 12:26:49,431 [INFO] MainProcess - Logging initialized
+2026-02-03 12:26:49,431 [INFO] MainProcess - Запуск multiprocessing с 1 процессами
+2026-02-03 12:26:51,228 [INFO] SpawnPoolWorker-1 - Logging initialized
+2026-02-03 12:26:51,229 [INFO] SpawnPoolWorker-1 - Обработка видео: videos\W_26.mp4
+2026-02-03 12:26:51,267 [INFO] SpawnPoolWorker-1 - Source videos\W_26.mp4: FPS=25.00, frames=129337, duration=86.22 min
+2026-02-03 12:26:51,268 [INFO] SpawnPoolWorker-1 - Редкий режим: выбрано 5 индексов кадров
+2026-02-03 12:26:51,268 [INFO] SpawnPoolWorker-1 - Индексы для режима rare: [0, 45000, 89999, 109668, 129335]
+2026-02-03 12:26:51,270 [INFO] SpawnPoolWorker-1 - Pypeline of Albumentations created
+2026-02-03 12:26:51,270 [INFO] SpawnPoolWorker-1 - Видео W_26: длительность 86.22 мин, режим=rare, кадров=5, качество=low, порог=60, seek=False, ffmpeg=False
+2026-02-03 12:26:51,306 [INFO] SpawnPoolWorker-1 - Кадр 0 отброшен как повреждённый
+2026-02-03 12:29:46,419 [INFO] MainProcess - Logging initialized
+2026-02-03 12:29:46,420 [INFO] MainProcess - Запуск multiprocessing с 1 процессами
+2026-02-03 12:29:48,320 [INFO] SpawnPoolWorker-1 - Logging initialized
+2026-02-03 12:29:48,321 [INFO] SpawnPoolWorker-1 - Обработка видео: videos\W_26.mp4
+2026-02-03 12:29:48,362 [INFO] SpawnPoolWorker-1 - Source videos\W_26.mp4: FPS=25.00, frames=129337, duration=86.22 min
+2026-02-03 12:29:48,362 [INFO] SpawnPoolWorker-1 - Редкий режим: выбрано 5 индексов кадров
+2026-02-03 12:29:48,362 [INFO] SpawnPoolWorker-1 - Индексы для режима rare: [0, 45000, 89999, 109668, 129335]
+2026-02-03 12:29:48,364 [INFO] SpawnPoolWorker-1 - Pypeline of Albumentations created
+2026-02-03 12:29:48,365 [INFO] SpawnPoolWorker-1 - Видео W_26: длительность 86.22 мин, режим=rare, кадров=5, качество=low, порог=60, seek=False, ffmpeg=False
+2026-02-03 12:29:48,402 [INFO] SpawnPoolWorker-1 - Кадр 0 отброшен как повреждённый
+2026-02-03 12:30:13,808 [INFO] MainProcess - Logging initialized
+2026-02-03 12:30:13,808 [INFO] MainProcess - Запуск multiprocessing с 1 процессами
+2026-02-03 12:30:15,655 [INFO] SpawnPoolWorker-1 - Logging initialized
+2026-02-03 12:30:15,655 [INFO] SpawnPoolWorker-1 - Обработка видео: videos\W_26.mp4
+2026-02-03 12:30:15,693 [INFO] SpawnPoolWorker-1 - Source videos\W_26.mp4: FPS=25.00, frames=129337, duration=86.22 min
+2026-02-03 12:30:15,694 [INFO] SpawnPoolWorker-1 - Редкий режим: выбрано 5 индексов кадров
+2026-02-03 12:30:15,694 [INFO] SpawnPoolWorker-1 - Индексы для режима rare: [0, 45000, 89999, 109668, 129335]
+2026-02-03 12:30:15,696 [INFO] SpawnPoolWorker-1 - Pypeline of Albumentations created
+2026-02-03 12:30:15,696 [INFO] SpawnPoolWorker-1 - Видео W_26: длительность 86.22 мин, режим=rare, кадров=5, качество=medium, порог=35, seek=False, ffmpeg=False
+2026-02-03 12:30:15,732 [INFO] SpawnPoolWorker-1 - Кадр 0 отброшен как повреждённый
+2026-02-03 12:30:52,302 [INFO] MainProcess - Logging initialized
+2026-02-03 12:30:52,302 [INFO] MainProcess - Запуск multiprocessing с 1 процессами
+2026-02-03 12:30:54,025 [INFO] SpawnPoolWorker-1 - Logging initialized
+2026-02-03 12:30:54,025 [INFO] SpawnPoolWorker-1 - Обработка видео: videos\W_26.mp4
+2026-02-03 12:30:54,063 [INFO] SpawnPoolWorker-1 - Source videos\W_26.mp4: FPS=25.00, frames=129337, duration=86.22 min
+2026-02-03 12:30:54,064 [INFO] SpawnPoolWorker-1 - Частый режим: выбрано 45 индексов кадров
+2026-02-03 12:30:54,064 [INFO] SpawnPoolWorker-1 - Индексы для режима frequent: [0, 3000, 6000, 9000, 12000, 15000, 18000, 21000, 24000, 27000, 30000, 33000, 36000, 39000, 42000, 45000, 48000, 51000, 54000, 57000, 60000, 63000, 66000, 69000, 72000, 75000, 78000, 81000, 84000, 87000, 90000, 93000, 96000, 99000, 102000, 105000, 108000, 111000, 114000, 117000, 120000, 123000, 126000, 129000, 129336]
+2026-02-03 12:30:54,066 [INFO] SpawnPoolWorker-1 - Pypeline of Albumentations created
+2026-02-03 12:30:54,067 [INFO] SpawnPoolWorker-1 - Видео W_26: длительность 86.22 мин, режим=frequent, кадров=45, качество=high, порог=20, seek=False, ffmpeg=False
+2026-02-03 12:30:54,103 [INFO] SpawnPoolWorker-1 - Кадр 0 отброшен как повреждённый
+2026-02-03 12:31:05,339 [INFO] SpawnPoolWorker-1 - JPEG saved: output\W_26\jpeg\W_26_00001.jpg
+2026-02-03 12:31:05,419 [INFO] SpawnPoolWorker-1 - PNG saved: output\W_26\png\W_26_00001.png
+2026-02-03 12:31:17,505 [INFO] SpawnPoolWorker-1 - JPEG saved: output\W_26\jpeg\W_26_00002.jpg
+2026-02-03 12:31:17,594 [INFO] SpawnPoolWorker-1 - PNG saved: output\W_26\png\W_26_00002.png
+2026-02-03 12:31:29,880 [INFO] SpawnPoolWorker-1 - JPEG saved: output\W_26\jpeg\W_26_00003.jpg
+2026-02-03 12:31:29,898 [INFO] SpawnPoolWorker-1 - PNG saved: output\W_26\png\W_26_00003.png
+2026-02-03 12:32:07,086 [INFO] MainProcess - Logging initialized
+2026-02-03 12:32:07,087 [INFO] MainProcess - Запуск multiprocessing с 1 процессами
+2026-02-03 12:32:08,838 [INFO] SpawnPoolWorker-1 - Logging initialized
+2026-02-03 12:32:08,839 [INFO] SpawnPoolWorker-1 - Обработка видео: videos\W_26.mp4
+2026-02-03 12:32:08,878 [INFO] SpawnPoolWorker-1 - Source videos\W_26.mp4: FPS=25.00, frames=129337, duration=86.22 min
+2026-02-03 12:32:08,878 [INFO] SpawnPoolWorker-1 - Редкий режим: выбрано 5 индексов кадров
+2026-02-03 12:32:08,878 [INFO] SpawnPoolWorker-1 - Индексы для режима rare: [0, 45000, 89999, 109668, 129335]
+2026-02-03 12:32:08,880 [INFO] SpawnPoolWorker-1 - Pypeline of Albumentations created
+2026-02-03 12:32:08,880 [INFO] SpawnPoolWorker-1 - Видео W_26: длительность 86.22 мин, режим=rare, кадров=5, качество=low, порог=60, seek=False, ffmpeg=False
+2026-02-03 12:32:08,917 [INFO] SpawnPoolWorker-1 - Кадр 0 отброшен как повреждённый
+2026-02-03 12:50:32,838 [INFO] MainProcess - Logging initialized
+2026-02-03 12:50:32,838 [INFO] MainProcess - Запуск multiprocessing с 1 процессами
+2026-02-03 12:50:34,606 [INFO] SpawnPoolWorker-1 - Logging initialized
+2026-02-03 12:50:34,606 [INFO] SpawnPoolWorker-1 - Обработка видео: videos\W_26.mp4
+2026-02-03 12:50:34,654 [INFO] SpawnPoolWorker-1 - Source videos\W_26.mp4: FPS=25.00, frames=129337, duration=86.22 min
+2026-02-03 12:50:34,654 [INFO] SpawnPoolWorker-1 - Редкий режим: выбрано 5 индексов кадров
+2026-02-03 12:50:34,655 [INFO] SpawnPoolWorker-1 - Индексы для режима rare: [0, 45000, 89999, 109668, 129335]
+2026-02-03 12:50:34,656 [INFO] SpawnPoolWorker-1 - Pypeline of Albumentations created
+2026-02-03 12:50:34,657 [INFO] SpawnPoolWorker-1 - Видео W_26: длительность 86.22 мин, режим=rare, кадров=5, качество=low, порог=60, seek=False, ffmpeg=False
+2026-02-03 12:50:34,697 [INFO] SpawnPoolWorker-1 - Кадр 0 отброшен как повреждённый
+2026-02-03 12:53:15,356 [INFO] SpawnPoolWorker-1 - JPEG saved: output\W_26\jpeg\W_26_00001.jpg
+2026-02-03 12:53:15,442 [INFO] SpawnPoolWorker-1 - PNG saved: output\W_26\png\W_26_00001.png
+2026-02-03 12:54:30,537 [INFO] MainProcess - Logging initialized
+2026-02-03 12:54:30,537 [INFO] MainProcess - Запуск multiprocessing с 1 процессами
+2026-02-03 12:54:32,301 [INFO] SpawnPoolWorker-1 - Logging initialized
+2026-02-03 12:54:32,301 [INFO] SpawnPoolWorker-1 - Обработка видео: videos\W_26.mp4
+2026-02-03 12:54:32,342 [INFO] SpawnPoolWorker-1 - Source videos\W_26.mp4: FPS=25.00, frames=129337, duration=86.22 min
+2026-02-03 12:54:32,342 [INFO] SpawnPoolWorker-1 - Редкий режим: выбрано 5 индексов кадров
+2026-02-03 12:54:32,342 [INFO] SpawnPoolWorker-1 - Индексы для режима rare: [0, 45000, 89999, 109668, 129335]
+2026-02-03 12:54:32,345 [INFO] SpawnPoolWorker-1 - Pypeline of Albumentations created
+2026-02-03 12:54:32,345 [INFO] SpawnPoolWorker-1 - Видео W_26: длительность 86.22 мин, режим=rare, кадров=5, качество=high, порог=20, seek=False, ffmpeg=False
+2026-02-03 12:54:32,381 [INFO] SpawnPoolWorker-1 - Кадр 0 отброшен как повреждённый
+2026-02-03 12:56:59,060 [INFO] MainProcess - Logging initialized
+2026-02-03 12:56:59,061 [INFO] MainProcess - Запуск multiprocessing с 1 процессами
+2026-02-03 12:57:00,831 [INFO] SpawnPoolWorker-1 - Logging initialized
+2026-02-03 12:57:00,831 [INFO] SpawnPoolWorker-1 - Обработка видео: videos\W_26.mp4
+2026-02-03 12:57:00,870 [INFO] SpawnPoolWorker-1 - Source videos\W_26.mp4: FPS=25.00, frames=129337, duration=86.22 min
+2026-02-03 12:57:00,870 [INFO] SpawnPoolWorker-1 - Редкий режим: выбрано 5 индексов кадров
+2026-02-03 12:57:00,870 [INFO] SpawnPoolWorker-1 - Индексы для режима rare: [0, 45000, 89999, 109668, 129335]
+2026-02-03 12:57:00,872 [INFO] SpawnPoolWorker-1 - Pypeline of Albumentations created
+2026-02-03 12:57:00,873 [INFO] SpawnPoolWorker-1 - Видео W_26: длительность 86.22 мин, режим=rare, кадров=5, качество=low, порог=60, seek=False, ffmpeg=False
+2026-02-03 13:09:22,731 [INFO] MainProcess - Logging initialized
+2026-02-03 13:09:22,732 [INFO] MainProcess - Запуск multiprocessing с 1 процессами
+2026-02-03 13:09:24,536 [INFO] SpawnPoolWorker-1 - Logging initialized
+2026-02-03 13:09:24,536 [INFO] SpawnPoolWorker-1 - Обработка видео: videos\W_26.mp4
+2026-02-03 13:09:24,575 [INFO] SpawnPoolWorker-1 - Редкий режим: выбрано 5 индексов кадров
+2026-02-03 13:09:24,575 [INFO] SpawnPoolWorker-1 - Индексы для режима rare: [0, 45000, 89999, 109668, 129335]
+2026-02-03 13:09:24,577 [INFO] SpawnPoolWorker-1 - Pypeline of Albumentations created
+2026-02-03 13:09:24,578 [INFO] SpawnPoolWorker-1 - Видео W_26: длительность 86.22 мин, режим=rare, кадров=5, качество=low, порог=60, seek=False, ffmpeg=False
+2026-02-03 13:09:24,715 [INFO] SpawnPoolWorker-1 - Первый кадр повреждён — использован кадр 11
+2026-02-03 13:09:24,727 [INFO] SpawnPoolWorker-1 - JPEG saved: output\W_26\jpeg\W_26_00001.jpg
+2026-02-03 13:09:24,750 [INFO] SpawnPoolWorker-1 - PNG saved: output\W_26\png\W_26_00001.png
+2026-02-03 13:12:08,619 [INFO] SpawnPoolWorker-1 - JPEG saved: output\W_26\jpeg\W_26_00002.jpg
+2026-02-03 13:12:08,705 [INFO] SpawnPoolWorker-1 - PNG saved: output\W_26\png\W_26_00002.png
+2026-02-03 13:14:53,692 [INFO] SpawnPoolWorker-1 - JPEG saved: output\W_26\jpeg\W_26_00003.jpg
+2026-02-03 13:14:53,718 [INFO] SpawnPoolWorker-1 - PNG saved: output\W_26\png\W_26_00003.png
+2026-02-03 13:16:06,274 [INFO] SpawnPoolWorker-1 - JPEG saved: output\W_26\jpeg\W_26_00004.jpg
+2026-02-03 13:16:06,304 [INFO] SpawnPoolWorker-1 - PNG saved: output\W_26\png\W_26_00004.png
+2026-02-03 13:17:18,560 [INFO] SpawnPoolWorker-1 - JPEG saved: output\W_26\jpeg\W_26_00005.jpg
+2026-02-03 13:17:18,579 [INFO] SpawnPoolWorker-1 - PNG saved: output\W_26\png\W_26_00005.png
+2026-02-03 13:17:18,595 [INFO] SpawnPoolWorker-1 - Готово: W_26, сохранено кадров: 5
+2026-02-03 14:20:24,571 [INFO] MainProcess - Logging initialized
+2026-02-03 14:20:24,572 [INFO] MainProcess - Запуск multiprocessing с 1 процессами
+2026-02-03 14:20:26,284 [INFO] SpawnPoolWorker-1 - Logging initialized
+2026-02-03 14:20:26,285 [INFO] SpawnPoolWorker-1 - Обработка видео: videos\W_26.mp4
+2026-02-03 14:20:26,325 [INFO] SpawnPoolWorker-1 - Частый режим: выбрано 53 индексов кадров
+2026-02-03 14:20:26,325 [INFO] SpawnPoolWorker-1 - Индексы для режима frequent: [0, 2500, 5000, 7500, 10000, 12500, 15000, 17500, 20000, 22500, 25000, 27500, 30000, 32500, 35000, 37500, 40000, 42500, 45000, 47500, 50000, 52500, 55000, 57500, 60000, 62500, 65000, 67500, 70000, 72500, 75000, 77500, 80000, 82500, 85000, 87500, 90000, 92500, 95000, 97500, 100000, 102500, 105000, 107500, 110000, 112500, 115000, 117500, 120000, 122500, 125000, 127500, 129336]
+2026-02-03 14:20:26,329 [INFO] SpawnPoolWorker-1 - Pypeline of Albumentations created
+2026-02-03 14:20:26,329 [INFO] SpawnPoolWorker-1 - Видео W_26: длительность 86.22 мин, режим=frequent, кадров=53, качество=high, порог=20, seek=False, ffmpeg=False
+2026-02-03 14:20:26,470 [INFO] SpawnPoolWorker-1 - Первый кадр повреждён — использован кадр 11
+2026-02-03 14:20:26,488 [INFO] SpawnPoolWorker-1 - JPEG saved: output\W_26\jpeg\W_26_00001.jpg
+2026-02-03 14:20:26,513 [INFO] SpawnPoolWorker-1 - PNG saved: output\W_26\png\W_26_00001.png
+2026-02-03 14:20:34,965 [INFO] SpawnPoolWorker-1 - JPEG saved: output\W_26\jpeg\W_26_00002.jpg
+2026-02-03 14:20:34,986 [INFO] SpawnPoolWorker-1 - PNG saved: output\W_26\png\W_26_00002.png
+2026-02-03 14:20:43,731 [INFO] SpawnPoolWorker-1 - JPEG saved: output\W_26\jpeg\W_26_00003.jpg
+2026-02-03 14:20:43,751 [INFO] SpawnPoolWorker-1 - PNG saved: output\W_26\png\W_26_00003.png
+2026-02-03 14:20:52,725 [INFO] SpawnPoolWorker-1 - JPEG saved: output\W_26\jpeg\W_26_00004.jpg
+2026-02-03 14:20:52,747 [INFO] SpawnPoolWorker-1 - PNG saved: output\W_26\png\W_26_00004.png
+2026-02-03 14:21:02,149 [INFO] SpawnPoolWorker-1 - JPEG saved: output\W_26\jpeg\W_26_00005.jpg
+2026-02-03 14:21:02,226 [INFO] SpawnPoolWorker-1 - PNG saved: output\W_26\png\W_26_00005.png
+2026-02-03 14:21:12,294 [INFO] SpawnPoolWorker-1 - JPEG saved: output\W_26\jpeg\W_26_00006.jpg
+2026-02-03 14:21:12,316 [INFO] SpawnPoolWorker-1 - PNG saved: output\W_26\png\W_26_00006.png
+2026-02-03 14:21:21,768 [INFO] SpawnPoolWorker-1 - JPEG saved: output\W_26\jpeg\W_26_00007.jpg
+2026-02-03 14:21:21,841 [INFO] SpawnPoolWorker-1 - PNG saved: output\W_26\png\W_26_00007.png
+2026-02-03 14:21:31,645 [INFO] SpawnPoolWorker-1 - JPEG saved: output\W_26\jpeg\W_26_00008.jpg
+2026-02-03 14:21:31,667 [INFO] SpawnPoolWorker-1 - PNG saved: output\W_26\png\W_26_00008.png
+2026-02-03 14:29:39,405 [INFO] MainProcess - Logging initialized
+2026-02-03 14:30:15,004 [INFO] MainProcess - Logging initialized
+2026-02-03 14:48:05,799 [INFO] MainProcess - Logging initialized
+2026-02-03 14:50:13,263 [INFO] MainProcess - Logging initialized
+2026-02-03 14:52:09,621 [INFO] MainProcess - Logging initialized
+2026-02-03 15:09:33,004 [INFO] MainProcess - Logging initialized
+2026-02-03 15:13:28,702 [INFO] MainProcess - Logging initialized
+2026-02-03 15:14:02,356 [INFO] MainProcess - Logging initialized
+2026-02-03 15:17:49,280 [INFO] MainProcess - Logging initialized
+2026-02-03 15:19:16,087 [INFO] MainProcess - Logging initialized
+2026-02-03 15:19:16,108 [INFO] MainProcess - Начало обработки: https://rr5---sn-ua87sn76.googlevideo.com/videoplayback?expire=1770146345&ei=yfWBaff0N9uI6dsPz9v9yAY&ip=2a05%3Abb80%3A3c%3A48e6%3A4cf1%3Adef6%3A77a1%3A561&id=o-ANEPaazKPim-n6t-RNSerERGlq_OtrpCWv3IX_88cAtv&itag=18&source=youtube&requiressl=yes&xpc=EgVo2aDSNQ%3D%3D&cps=450&met=1770124745%2C&mh=r6&mm=31%2C29&mn=sn-ua87sn76%2Csn-ua87zn7e&ms=au%2Crdu&mv=m&mvi=5&pl=48&rms=au%2Cau&initcwndbps=3328750&bui=AW-iu_pXGOQ_5M6IrW6_cFzpoWtUqRbYt2lzr5tQf8GGS5BVD5YUphtI-c8SaD6nfhxs1BioeS0WH77P&spc=q5xjPMRNmkFtsQRHwDG2&vprv=1&svpuc=1&mime=video%2Fmp4&rqh=1&gir=yes&clen=30051383&ratebypass=yes&dur=1952.728&lmt=1755513150799343&mt=1770124429&fvip=4&fexp=51552689%2C51565116%2C51565681%2C51580968&c=ANDROID_VR&txp=5538534&sparams=expire%2Cei%2Cip%2Cid%2Citag%2Csource%2Crequiressl%2Cxpc%2Cbui%2Cspc%2Cvprv%2Csvpuc%2Cmime%2Crqh%2Cgir%2Cclen%2Cratebypass%2Cdur%2Clmt&sig=AJEij0EwRQIgXoYaoPE_MJPOway9Z520QVjgygox94fOLhitrD6t6FACIQD90qsc2pGXshzbl8eHBAEWXgrIvPcCwdQfA7X8vp8RlA%3D%3D&lsparams=cps%2Cmet%2Cmh%2Cmm%2Cmn%2Cms%2Cmv%2Cmvi%2Cpl%2Crms%2Cinitcwndbps&lsig=APaTxxMwRQIgBw2o8E_5G8nhrq6E2FYJTgNhTBygKGKbOcETZaSPW08CIQCcT-Jj1-ykPTJOHYbeXtoUMBtXrD-vWZGQ1YlNyINpNg%3D%3D
+2026-02-03 15:19:16,110 [INFO] MainProcess - Редкий режим: выбрано 49 индексов кадров
+2026-02-03 15:19:16,113 [INFO] MainProcess - Pypeline of Albumentations created
+2026-02-03 15:58:23,901 [INFO] MainProcess - Logging initialized
+2026-02-03 15:58:23,910 [INFO] MainProcess - Начало обработки: https://rr4---sn-ua87zn7e.googlevideo.com/videoplayback?expire=1770148697&ei=-f6BabeEEJiy8uMPiNic0Qk&ip=2a05%3Abb80%3A3c%3A48e6%3A899a%3A1fe1%3A9cf%3Aa1f2&id=o-ABvhdFx3aYQryBTJ4w9gwow1TXLIR_GoXvccgTZX49Kg&itag=18&source=youtube&requiressl=yes&xpc=EgVo2aDSNQ%3D%3D&cps=453&met=1770127097%2C&mh=r6&mm=31%2C29&mn=sn-ua87zn7e%2Csn-ua87sn76&ms=au%2Crdu&mv=m&mvi=4&pl=48&rms=au%2Cau&initcwndbps=3913750&bui=AW-iu_oNU4IFt4YH0fw96QL5AZqJmCZwNr3qicT_eE-PzzuGZBeU28oXK_DHroFv0drK3-Gp3s9Rt5wO&spc=q5xjPEJV08lQk8OJkRBB&vprv=1&svpuc=1&mime=video%2Fmp4&rqh=1&gir=yes&clen=30051383&ratebypass=yes&dur=1952.728&lmt=1755513150799343&mt=1770126591&fvip=5&fexp=51552689%2C51565115%2C51565681%2C51580968&c=ANDROID_VR&txp=5538534&sparams=expire%2Cei%2Cip%2Cid%2Citag%2Csource%2Crequiressl%2Cxpc%2Cbui%2Cspc%2Cvprv%2Csvpuc%2Cmime%2Crqh%2Cgir%2Cclen%2Cratebypass%2Cdur%2Clmt&sig=AJEij0EwRQIhAN2aOj7TUWxHikQntUpc_NDqpWavp-SzUgQyQdD78fcVAiB_qUuxDmxrb0KAFl7Vf3yMB1ILh1-BdVMovQ6WMpkI9g%3D%3D&lsparams=cps%2Cmet%2Cmh%2Cmm%2Cmn%2Cms%2Cmv%2Cmvi%2Cpl%2Crms%2Cinitcwndbps&lsig=APaTxxMwRgIhAOP5EFqi8KwLf3QZyaWuz7YisN7FaktsF8P1ptPnQ3ctAiEAmRAka8IjfKNoPqYHdOjuKj6sH-4MVUQ3nDbAwxBSF5U%3D
+2026-02-03 15:58:23,912 [INFO] MainProcess - Редкий режим: выбрано 49 индексов кадров
+2026-02-03 15:58:23,914 [INFO] MainProcess - Pypeline of Albumentations created
+2026-02-03 20:48:08,533 [INFO] MainProcess - Logging initialized
+2026-02-03 20:51:06,394 [INFO] MainProcess - Logging initialized
+2026-02-03 21:29:01,360 [INFO] MainProcess - Logging initialized
+2026-02-03 21:33:26,103 [INFO] MainProcess - Logging initialized
+2026-02-03 21:42:00,951 [INFO] MainProcess - Logging initialized
+2026-02-03 22:04:18,605 [INFO] MainProcess - Logging initialized
+2026-02-03 22:05:13,129 [INFO] MainProcess - Logging initialized
+2026-02-03 22:05:59,661 [INFO] MainProcess - Logging initialized
+2026-02-03 22:08:14,574 [INFO] MainProcess - Logging initialized
+2026-02-03 22:13:37,115 [INFO] MainProcess - Logging initialized
+2026-02-03 22:20:07,790 [INFO] MainProcess - Logging initialized
+2026-02-03 22:42:25,759 [INFO] MainProcess - Logging initialized
+2026-02-03 22:43:28,069 [INFO] MainProcess - Logging initialized
+2026-02-03 22:49:31,933 [INFO] MainProcess - Logging initialized
+2026-02-04 09:38:03,313 [INFO] MainProcess - Logging initialized
+2026-02-04 09:41:37,836 [INFO] MainProcess - Logging initialized
+2026-02-04 09:51:33,023 [INFO] MainProcess - Logging initialized
+2026-02-04 09:51:45,686 [INFO] MainProcess - Logging initialized
+2026-02-04 10:23:27,216 [INFO] MainProcess - Logging initialized
+2026-02-04 10:24:04,036 [INFO] MainProcess - Logging initialized
+2026-02-04 10:24:41,642 [INFO] MainProcess - Logging initialized
+2026-02-04 10:52:04,196 [INFO] MainProcess - Logging initialized
+2026-02-04 11:16:09,734 [INFO] MainProcess - Logging initialized
+2026-02-04 11:18:06,947 [INFO] MainProcess - Logging initialized
+2026-02-04 18:26:00,204 [INFO] MainProcess - Logging initialized
+2026-02-04 18:29:57,248 [INFO] MainProcess - Logging initialized
+2026-02-04 19:17:42,844 [INFO] MainProcess - Logging initialized
+2026-02-04 19:21:45,758 [INFO] MainProcess - Logging initialized
+2026-02-04 21:12:49,210 [INFO] MainProcess - Logging initialized
+2026-02-05 18:47:55,633 [INFO] MainProcess - Logging initialized
+2026-02-05 18:48:23,391 [INFO] MainProcess - Logging initialized
+2026-02-05 21:27:27,979 [INFO] MainProcess - Logging initialized
+2026-02-05 21:30:16,018 [INFO] MainProcess - Logging initialized
+2026-02-05 21:42:58,571 [INFO] MainProcess - Logging initialized
+2026-02-05 22:48:37,069 [INFO] MainProcess - Logging initialized
+2026-02-05 22:49:39,654 [INFO] MainProcess - Logging initialized
+2026-02-06 18:54:05,143 [INFO] MainProcess - Logging initialized
+2026-02-10 15:31:38,051 [INFO] MainProcess - Logging initialized
+2026-02-10 15:48:14,568 [INFO] MainProcess - Logging initialized
+2026-02-10 15:56:41,701 [INFO] MainProcess - Logging initialized
+2026-02-10 19:52:03,363 [INFO] MainProcess - Logging initialized
+2026-02-10 20:03:49,971 [INFO] MainProcess - Logging initialized
+2026-02-10 20:38:25,430 [INFO] MainProcess - Logging initialized
+2026-02-10 20:52:26,923 [INFO] MainProcess - Logging initialized
+2026-02-10 21:33:26,290 [INFO] MainProcess - Logging initialized
+2026-02-12 09:12:08,935 [INFO] MainProcess - Logging initialized
+2026-02-12 09:14:28,674 [INFO] MainProcess - Logging initialized
+2026-02-12 09:15:40,148 [INFO] MainProcess - Logging initialized
+2026-02-12 09:20:47,121 [INFO] MainProcess - Logging initialized
+2026-02-12 09:26:16,158 [INFO] MainProcess - Logging initialized
+2026-02-12 09:42:23,055 [INFO] MainProcess - Logging initialized
+2026-02-12 09:53:25,660 [INFO] MainProcess - Logging initialized
+2026-02-14 10:47:43,956 [INFO] MainProcess - Logging initialized
+2026-02-14 10:59:41,582 [INFO] MainProcess - Logging initialized
+2026-02-14 11:20:36,518 [INFO] MainProcess - Logging initialized
+2026-02-14 11:24:42,282 [INFO] MainProcess - Logging initialized
+2026-02-21 21:56:46,318 [INFO] MainProcess - Logging initialized
+2026-02-21 21:58:30,642 [INFO] MainProcess - Logging initialized
+2026-02-21 21:59:05,400 [INFO] MainProcess - Logging initialized
+2026-02-21 22:00:54,275 [INFO] MainProcess - Logging initialized
