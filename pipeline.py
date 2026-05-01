@@ -110,14 +110,16 @@ def find_next_good_frame(
     use_seek: bool,
     ffmpeg_path: str,
     video_path: str,
+    max_search: int = 300,
 ) -> Tuple[Any, Any, int]:
     """
     Поиск следующего неповреждённого кадра, начиная с start_idx.
-    Логика перенесена из main.py без изменений.
+    max_search — максимальное количество шагов вперёд.
     """
     idx = start_idx
+    steps = 0
 
-    while True:
+    while steps < max_search:
         if use_ffmpeg:
             retX, frameX = get_frame_ffmpeg(video_path, idx, fps, ffmpeg_path)
         elif use_seek:
@@ -142,6 +144,9 @@ def find_next_good_frame(
             return True, frameX, idx
 
         idx += 1
+        steps += 1
+
+    return None, None, idx
 
 
 def find_prev_good_frame(
