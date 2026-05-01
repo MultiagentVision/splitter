@@ -401,6 +401,7 @@ def process_one_key(
             logger.warning("[2/4 CONVERT] Не удалось конвертировать за %.1fs, пробуем как есть", elapsed_conv)
     else:
         logger.info("[2/4 CONVERT] Пропущено (не H.265)")
+        elapsed_conv = 0.0
 
     # ── Фаза 3: Extract frames ────────────────────────────────────
     t_extract = time.perf_counter()
