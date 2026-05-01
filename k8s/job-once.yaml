@@ -1,0 +1,77 @@
+# Splitter: ручной запуск K8s Job (вариант A/B fallback)
+#
+# Использование:
+#   kubectl apply -f job-once.yaml -n chessverse
+#   kubectl logs -n chessverse -l app=splitter -f
+#   kubectl delete -f job-once.yaml -n chessverse   (после завершения)
+#
+# Параметры переопределить через env:
+#   FRAME_MODE=rare|frequent
+#   MINIO_OUTPUT_PREFIX=video/my_output
+#   ONLY_KEYS задаётся через command args: --only=file1.h265,file2.h265
+
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: splitter-rare-manual
+  namespace: chessverse
+  labels:
+    app: splitter
+    frame-mode: rare
+spec:
+  ttlSecondsAfterFinished: 86400   # удалить Job через 24ч после завершения
+  backoffLimit: 1
+  template:
+    metadata:
+      labels:
+        app: splitter
+    spec:
+      restartPolicy: Never
+      imagePullSecrets:
+        - name: harbor-pull
+      hostAliases:
+        - ip: 10.0.0.201
+          hostnames:
+            - registry.multiagent.vision
+      containers:
+        - name: splitter
+          image: registry.multiagent.vision/chessverse/splitter:latest
+          imagePullPolicy: Always
+          # Для фильтра по файлам добавить: "--only=file1.h265,file2.h265"
+          command: ["python", "minio_worker.py", "--once"]
+          env:
+            - name: FRAME_MODE
+              value: "rare"
+            - name: QUALITY_LEVEL
+              value: "low"
+            - name: SPLITER_WORK_DIR
+              value: "/data/work"
+            - name: MINIO_OUTPUT_PREFIX
+              value: "video/splitter_output"
+            - name: LOG_LEVEL
+              value: "DEBUG"
+          envFrom:
+            - secretRef:
+                name: splitter-minio-credentials
+            - secretRef:
+                name: splitter-cf-access
+          volumeMounts:
+            - name: work
+              mountPath: /data/work
+            - name: config
+              mountPath: /app/config.json
+              subPath: config.json
+          resources:
+            requests:
+              cpu: "2"
+              memory: "4Gi"
+            limits:
+              cpu: "4"
+              memory: "8Gi"
+      volumes:
+        - name: work
+          emptyDir:
+            sizeLimit: 30Gi    # временные файлы: .h265 скачать + конвертация
+        - name: config
+          configMap:
+            name: splitter-config

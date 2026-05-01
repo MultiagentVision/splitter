@@ -25,7 +25,6 @@ import tempfile
 import time
 from datetime import datetime
 from pathlib import Path
-
 from urllib.parse import urlparse
 
 try:
@@ -366,66 +365,75 @@ def process_one_key(
     input_prefix = (config_minio.get("input_prefix") or "").strip().rstrip("/")
     output_prefix = (config_minio.get("output_prefix") or "spliter_output").strip().rstrip("/")
     local_path = os.path.join(tmp_dir, os.path.basename(key))
+
+    # ── Фаза 1: Download ──────────────────────────────────────────
+    t_dl = time.perf_counter()
     try:
-        logger.info("Download: %s -> %s", key, local_path)
+        logger.info("[1/4 DOWNLOAD] %s → %s", key, local_path)
         storage.download_file(bucket, key, local_path)
         sz = os.path.getsize(local_path)
-        if sz >= 1024 * 1024:
-            sz_h = f"{sz // (1024 * 1024)} МБ"
-        else:
-            sz_h = f"{max(sz // 1024, 1)} КБ"
-        logger.info("Скачано: %s (%s), начинаю извлечение кадров…", key, sz_h)
+        sz_mb = sz / 1024 / 1024
+        elapsed_dl = time.perf_counter() - t_dl
+        speed = sz_mb / elapsed_dl if elapsed_dl > 0 else 0
+        logger.info("[1/4 DOWNLOAD] Готово: %.1f МБ за %.1fs (%.1f МБ/с)", sz_mb, elapsed_dl, speed)
     except Exception as e:
-        logger.exception("Не удалось скачать %s: %s", key, e)
-        logger.info(
-            "─── Прервано (ошибка скачивания): %s | %s ───",
-            key,
-            datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        )
+        logger.exception("[1/4 DOWNLOAD] Не удалось скачать %s: %s", key, e)
+        logger.info("─── Прервано (download): %s | %.1f мин ───", key, (time.perf_counter() - t0) / 60.0)
         return False
 
-    # Конвертация H.265 при необходимости
+    # ── Фаза 2: Convert ───────────────────────────────────────────
+    t_conv = time.perf_counter()
+    converted_path = local_path
     if local_path.lower().endswith((".h265", ".hevc")):
+        logger.info("[2/4 CONVERT] H.265 → видеофайл: %s", local_path)
         converted = convert_h265_to_video(
             local_path,
             ffmpeg_path=config.get("ffmpeg_path", "ffmpeg"),
             cache_dir=os.path.join(tmp_dir, "cache_h265"),
         )
+        elapsed_conv = time.perf_counter() - t_conv
         if converted:
-            local_path = converted
+            conv_sz_mb = os.path.getsize(converted) / 1024 / 1024
+            logger.info("[2/4 CONVERT] Готово: %s (%.1f МБ) за %.1fs",
+                        os.path.basename(converted), conv_sz_mb, elapsed_conv)
+            converted_path = converted
         else:
-            logger.warning("Не удалось конвертировать %s, пробуем как есть", key)
+            logger.warning("[2/4 CONVERT] Не удалось конвертировать за %.1fs, пробуем как есть", elapsed_conv)
+    else:
+        logger.info("[2/4 CONVERT] Пропущено (не H.265)")
 
-    # Временная папка для результата
+    # ── Фаза 3: Extract frames ────────────────────────────────────
+    t_extract = time.perf_counter()
     out_dir = os.path.join(tmp_dir, "out")
     os.makedirs(out_dir, exist_ok=True)
     config_run = {**config, "output_folder": out_dir, "use_video_files": True}
     if not use_progress:
         config_run["show_progress"] = False
 
+    logger.info("[3/4 EXTRACT] Начало извлечения кадров: %s", converted_path)
     try:
-        extract_frames_for_video((local_path, config_run))
+        extract_frames_for_video((converted_path, config_run))
     except Exception as e:
-        logger.exception("Ошибка обработки %s: %s", key, e)
-        logger.info(
-            "─── Прервано (пайплайн): %s | %.1f мин ───",
-            key,
-            (time.perf_counter() - t0) / 60.0,
-        )
+        logger.exception("[3/4 EXTRACT] Ошибка: %s", e)
+        logger.info("─── Прервано (extract): %s | %.1f мин ───", key, (time.perf_counter() - t0) / 60.0)
         return False
+    elapsed_extract = time.perf_counter() - t_extract
+    logger.info("[3/4 EXTRACT] Готово за %.1fs", elapsed_extract)
 
-    video_name = safe_video_name(local_path)
+    video_name = safe_video_name(converted_path)
     video_out_dir = os.path.join(out_dir, video_name)
     if not os.path.isdir(video_out_dir):
-        logger.warning("Папка результата не найдена: %s", video_out_dir)
+        logger.warning("[3/4 EXTRACT] Папка результата не найдена: %s", video_out_dir)
         return False
 
+    # Подсчёт сохранённых файлов
+    saved_files = list(Path(video_out_dir).rglob("*.jpg")) + list(Path(video_out_dir).rglob("*.png"))
+    logger.info("[3/4 EXTRACT] Сохранено файлов: %d в %s", len(saved_files), video_out_dir)
+
+    # ── Фаза 4: Upload ────────────────────────────────────────────
+    t_upload = time.perf_counter()
     s3_out_prefix = f"{output_prefix}/{video_name}"
-    logger.info(
-        "Загрузка в MinIO: s3://%s/%s/{jpeg|png}/…",
-        bucket,
-        s3_out_prefix,
-    )
+    logger.info("[4/4 UPLOAD] MinIO s3://%s/%s/…  файлов: %d", bucket, s3_out_prefix, len(saved_files))
     upload_directory_to_s3(
         storage,
         bucket,
@@ -433,14 +441,20 @@ def process_one_key(
         video_out_dir,
         show_progress=use_progress,
     )
-    elapsed = time.perf_counter() - t0
+    elapsed_upload = time.perf_counter() - t_upload
+    logger.info("[4/4 UPLOAD] Готово за %.1fs", elapsed_upload)
+
+    elapsed_total = time.perf_counter() - t0
     logger.info(
-        "─── Конец: %s | длительность %.2f мин | %s ───",
+        "─── Конец: %s | dl=%.1fs conv=%.1fs extract=%.1fs upload=%.1fs total=%.2f мин | %s ───",
         key,
-        elapsed / 60.0,
+        time.perf_counter() - t_dl - (elapsed_extract + elapsed_upload + elapsed_conv),  # recalc dl
+        elapsed_conv if local_path.lower().endswith((".h265", ".hevc")) else 0,
+        elapsed_extract,
+        elapsed_upload,
+        elapsed_total / 60.0,
         datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
     )
-    logger.info("Готово: %s → префикс %s", key, s3_out_prefix)
     return True
 
 
@@ -493,6 +507,24 @@ def main():
     config_path = os.path.join(os.path.dirname(__file__), "config.json")
     config = load_config(config_path)
     config_minio = config.get("minio") or {}
+
+    # Env-var overrides (для K8s Job / Docker run без монтирования config.json)
+    for env_key, cfg_key in [
+        ("FRAME_MODE", "frame_mode"),
+        ("QUALITY_LEVEL", "quality_level"),
+        ("MINIO_INPUT_PREFIX", "minio.input_prefix"),
+        ("MINIO_OUTPUT_PREFIX", "minio.output_prefix"),
+    ]:
+        val = os.environ.get(env_key, "").strip()
+        if val:
+            if "." in cfg_key:
+                section, key = cfg_key.split(".", 1)
+                if section == "minio":
+                    config_minio[key] = val
+            else:
+                config[cfg_key] = val
+            logger.info("ENV override: %s=%s", env_key, val)
+
     if not config_minio:
         logger.error(
             "В config.json отсутствует секция 'minio'. "
@@ -513,6 +545,10 @@ def main():
         _apply_force_on_processed(processed, only_patterns)
 
     if once:
+        logger.info(
+            "════════ minio_worker: старт сессии %s ════════",
+            datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        )
         logger.info(
             "════════ minio_worker: старт сессии %s ════════",
             datetime.now().strftime("%Y-%m-%d %H:%M:%S"),

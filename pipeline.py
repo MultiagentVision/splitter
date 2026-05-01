@@ -1,8 +1,10 @@
 import os
+import time
 from multiprocessing import Pool, cpu_count
 from typing import Any, Dict, Tuple
 
 import cv2
+import numpy as np
 
 try:
     from tqdm import tqdm
@@ -19,6 +21,23 @@ from config_utils import safe_video_name
 from video_sources import get_video_codec, check_stream_available, download_gdrive_videos
 from h265_converter import convert_h265_to_video
 from video_logger import create_video_logger
+
+
+def _log_frame_stats(logger, frame, idx: int, label: str = "кадр") -> None:
+    """Логирует базовую статистику кадра: форму, mean/std по каналам."""
+    if frame is None:
+        logger.debug("  [%s idx=%d] frame=None", label, idx)
+        return
+    h, w = frame.shape[:2]
+    b, g, r = cv2.split(frame)
+    logger.debug(
+        "  [%s idx=%d] shape=%dx%d  B=%.1f±%.1f  G=%.1f±%.1f  R=%.1f±%.1f  gray_mean=%.1f",
+        label, idx, w, h,
+        float(np.mean(b)), float(np.std(b)),
+        float(np.mean(g)), float(np.std(g)),
+        float(np.mean(r)), float(np.std(r)),
+        float(np.mean(cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY))),
+    )
 
 
 def _normalize_video_key(name_or_path: str) -> str:
@@ -258,12 +277,16 @@ def extract_frames_for_video(args):
             )
 
         for target_idx in idx_sequence:
+            t_frame = time.perf_counter()
             # Берём кадр по индексу (индекс -> время: t = target_idx / fps внутри get_frame_ffmpeg)
             if use_ffmpeg:
                 ret2, frame2 = get_frame_ffmpeg(base_path_str, target_idx, fps, ffmpeg_path)
             else:
                 # Используем seek по номеру кадра (без прокрутки всех предыдущих)
                 ret2, frame2 = get_frame_seek(vs.cap, target_idx)
+
+            elapsed_read = time.perf_counter() - t_frame
+            logger.debug("Кадр idx=%d извлечён за %.2fs ret=%s", target_idx, elapsed_read, ret2)
 
             if not ret2 or frame2 is None:
                 logger.warning(f"Не удалось прочитать кадр {target_idx}, ищем предыдущий")
@@ -281,11 +304,16 @@ def extract_frames_for_video(args):
                     continue
                 logger.info(f"Использован кадр {good_idx} вместо нечитаемого {target_idx}")
 
-            # Первый и последний кадр сохраняем как есть (без проверки на повреждённость)
-            is_first_or_last = target_idx == 0 or target_idx == total_frames - 1
-            if not is_first_or_last and is_frame_corrupted(frame2, threshold):
-                logger.info(f"Кадр {target_idx} повреждён — ищем следующий")
-                # Ищем следующий хороший кадр также прямым доступом
+            # Логируем статистику кадра перед проверкой качества
+            _log_frame_stats(logger, frame2, target_idx)
+
+            # Все кадры проходят проверку на повреждённость (включая первый и последний —
+            # именно они наиболее подвержены H.265 decode artifacts: серые, зелёные, мусор)
+            if is_frame_corrupted(frame2, threshold, verbose=True):
+                logger.warning(
+                    f"Кадр {target_idx} ПОВРЕЖДЁН (idx={'первый' if target_idx == 0 else 'последний' if target_idx == total_frames - 1 else target_idx}) — ищем замену"
+                )
+                # Сначала пробуем следующий хороший кадр
                 ret2, frame2, good_idx = find_next_good_frame(
                     target_idx + 1,
                     target_idx,
@@ -293,14 +321,26 @@ def extract_frames_for_video(args):
                     fps,
                     threshold,
                     use_ffmpeg,
-                    True,  # для файлового режима используем seek
+                    True,
                     ffmpeg_path,
                     base_path_str,
                 )
                 if not ret2 or frame2 is None:
-                    logger.warning(f"Не найден хороший кадр после {target_idx}")
+                    # Если не нашли вперёд — ищем назад
+                    ret2, frame2, good_idx = find_prev_good_frame(
+                        target_idx - 1,
+                        vs,
+                        fps,
+                        threshold,
+                        use_ffmpeg,
+                        ffmpeg_path,
+                        base_path_str,
+                    )
+                if not ret2 or frame2 is None:
+                    logger.warning(f"Не найден хороший кадр для позиции {target_idx}, пропускаю")
                     continue
-                logger.info(f"Использован кадр {good_idx} вместо {target_idx}")
+                logger.info(f"Использован кадр {good_idx} вместо повреждённого {target_idx}")
+                _log_frame_stats(logger, frame2, good_idx, label="замена")
 
             aug_frame = apply_augmentations(frame2, transform)
             saved_count += 1
