@@ -3,6 +3,12 @@ from multiprocessing import Pool, cpu_count
 from typing import Any, Dict, Tuple
 
 import cv2
+
+try:
+    from tqdm import tqdm
+except ImportError:
+    def tqdm(iterable, **kwargs):  # type: ignore[misc]
+        return iterable
 from video_source import VideoSource
 from frame_modes import get_rare_frame_indices, get_frequent_frame_indices
 from augmentations import build_augmentations, apply_augmentations
@@ -119,6 +125,38 @@ def find_next_good_frame(
         idx += 1
 
 
+def find_prev_good_frame(
+    start_idx: int,
+    vs: VideoSource,
+    fps: float,
+    threshold: float,
+    use_ffmpeg: bool,
+    ffmpeg_path: str,
+    video_path: str,
+    max_search: int = 300,
+) -> Tuple[Any, Any, int]:
+    """
+    Поиск предыдущего читаемого и неповреждённого кадра, отматывая назад от start_idx.
+    Используется когда целевой кадр (напр. последний) не удаётся прочитать.
+    max_search — максимальное количество шагов назад.
+    """
+    idx = start_idx
+    steps = 0
+    while idx >= 0 and steps < max_search:
+        if use_ffmpeg:
+            retX, frameX = get_frame_ffmpeg(video_path, idx, fps, ffmpeg_path)
+        else:
+            retX, frameX = get_frame_seek(vs.cap, idx)
+
+        if retX and frameX is not None and not is_frame_corrupted(frameX, threshold):
+            return True, frameX, idx
+
+        idx -= 1
+        steps += 1
+
+    return None, None, start_idx
+
+
 def extract_frames_for_video(args):
     """
     Обработка одного видеофайла или потока.
@@ -205,7 +243,21 @@ def extract_frames_for_video(args):
             f"через {'ffmpeg' if use_ffmpeg else ('seek' if use_seek else 'seek/OpenCV')}"
         )
 
-        for target_idx in sorted(target_indices):
+        show_bar = config.get("show_progress", True) and not os.environ.get(
+            "SPLITER_NO_PROGRESS", ""
+        )
+        frame_silent = show_bar
+        idx_sequence = sorted(target_indices)
+        if show_bar:
+            idx_sequence = tqdm(
+                idx_sequence,
+                desc=f"Кадры: {video_name[:36]}",
+                unit="кадр",
+                mininterval=0.5,
+                smoothing=0.05,
+            )
+
+        for target_idx in idx_sequence:
             # Берём кадр по индексу (индекс -> время: t = target_idx / fps внутри get_frame_ffmpeg)
             if use_ffmpeg:
                 ret2, frame2 = get_frame_ffmpeg(base_path_str, target_idx, fps, ffmpeg_path)
@@ -214,8 +266,20 @@ def extract_frames_for_video(args):
                 ret2, frame2 = get_frame_seek(vs.cap, target_idx)
 
             if not ret2 or frame2 is None:
-                logger.warning(f"Не удалось прочитать кадр {target_idx}, пропускаю")
-                continue
+                logger.warning(f"Не удалось прочитать кадр {target_idx}, ищем предыдущий")
+                ret2, frame2, good_idx = find_prev_good_frame(
+                    target_idx - 1,
+                    vs,
+                    fps,
+                    threshold,
+                    use_ffmpeg,
+                    ffmpeg_path,
+                    base_path_str,
+                )
+                if not ret2 or frame2 is None:
+                    logger.warning(f"Не найден читаемый кадр перед {target_idx}, пропускаю")
+                    continue
+                logger.info(f"Использован кадр {good_idx} вместо нечитаемого {target_idx}")
 
             # Первый и последний кадр сохраняем как есть (без проверки на повреждённость)
             is_first_or_last = target_idx == 0 or target_idx == total_frames - 1
@@ -247,6 +311,7 @@ def extract_frames_for_video(args):
                 index=saved_count,
                 save_png=save_png,
                 save_jpeg=save_jpeg,
+                silent=frame_silent,
             )
 
         vs.release()

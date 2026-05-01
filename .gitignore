@@ -14,10 +14,19 @@ venv/
 
 # Local state
 minio_processed.json
+work/
 
 # Generated
 spliter/cache_h265/
 spliter/logs/
 spliter/output/
+cache_h265/
+logs/
+output/
+videos/
+videos_out/
+videos_out_*/
+probe_run.log
+*.log
 *.zip
 __MACOSX/

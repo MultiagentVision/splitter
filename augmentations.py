@@ -5,8 +5,10 @@ import logging
 logger = logging.getLogger(__name__)
 
 def build_augmentations(cfg):
-    if not cfg.get("enable", True):
-        logger.info("Albumentations off")
+    """Аугментации только при albumentations.enable=true (по умолчанию выключены)."""
+    cfg = cfg or {}
+    if not cfg.get("enable", False):
+        logger.info("Albumentations отключены (кадры без изменений)")
         return None
 
     prob_noise = cfg.get("prob_noise", 0.5)

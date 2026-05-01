@@ -4,8 +4,18 @@
 Использование:
   python minio_worker.py              # цикл опроса (интервал из config)
   python minio_worker.py --once       # один проход
+  python minio_worker.py --once --only=Game1.mp4,Game2.mp4   # только эти ключи (по basename или суффиксу)
+  python minio_worker.py --once --only=Game1.mp4 --force     # снять с учёта в state_file и обработать снова
+  python minio_worker.py --once --no-progress               # без progress bar
 
-Требуется в config.json секция "minio" и credentials (env или ~/.aws/credentials).
+В config.json: minio.work_dir — каталог на диске D (скачивание, временные кадры, кеш H.265);
+minio.state_file — учёт обработанных ключей (лучше тот же диск).
+
+Остановка: PowerShell .\\stop_minio_worker.ps1 (или taskkill по minio_worker в командной строке).
+
+Cloudflare Access: если CF_* не заданы, воркер ищет токены в
+cursor-context-main/secrets/cloudflare-access.env или rules/clearml-training.mdc
+(пути рядом с репозиторием или CURSOR_CONTEXT_ROOT).
 """
 import json
 import logging
@@ -13,31 +23,242 @@ import os
 import sys
 import tempfile
 import time
+from datetime import datetime
 from pathlib import Path
 
-import boto3
-from botocore.exceptions import ClientError
+from urllib.parse import urlparse
+
+try:
+    from tqdm import tqdm
+except ImportError:
+
+    def tqdm(iterable, **kwargs):  # type: ignore[misc,no-redef]
+        return iterable
 
 from config_utils import load_config, safe_video_name
 from pipeline import extract_frames_for_video
 from h265_converter import convert_h265_to_video
 from upload_to_s3 import find_aws_credentials, find_working_endpoint
 
+
+class _FlushStreamHandler(logging.StreamHandler):
+    """Сразу сбрасывает буфер — в PowerShell иначе долго не видно прогресс."""
+
+    def emit(self, record):
+        super().emit(record)
+        self.flush()
+
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(message)s",
+    handlers=[_FlushStreamHandler(sys.stderr)],
+    force=True,
 )
 logger = logging.getLogger(__name__)
 
 VIDEO_EXTENSIONS = (".mp4", ".avi", ".mov", ".mkv", ".h265", ".hevc")
 
 
-def get_s3_client(config_minio: dict):
-    """S3/MinIO клиент из конфига и credentials."""
-    endpoint = (
-        config_minio.get("endpoint_url")
-        or os.getenv("S3_ENDPOINT_URL")
+def _work_dir_from_config(config_minio: dict) -> str:
+    """Локальный диск: скачивание из MinIO, кадры, кеш H.265 (см. minio.work_dir)."""
+    wd = (
+        (config_minio.get("work_dir") or "").strip()
+        or os.getenv("SPLITER_WORK_DIR", "").strip()
+        or str(Path(__file__).resolve().parent / "work")
     )
+    Path(wd).mkdir(parents=True, exist_ok=True)
+    return wd
+
+
+def _resolve_state_path(state_file: str) -> str:
+    """Абсолютный путь к файлу учёта обработанных ключей."""
+    p = Path(state_file)
+    if p.is_absolute():
+        return str(p)
+    return str(Path(__file__).resolve().parent / p)
+
+
+def _parse_only_arg(argv: list[str]) -> list[str] | None:
+    for a in argv:
+        if a.startswith("--only="):
+            parts = [x.strip() for x in a.split("=", 1)[1].split(",") if x.strip()]
+            return parts or None
+    return None
+
+
+def _key_matches_only(key: str, patterns: list[str]) -> bool:
+    """Совпадение по basename, полному суффиксу ключа или вхождению паттерна в ключ."""
+    base = os.path.basename(key)
+    for p in patterns:
+        if base == p or key == p or key.endswith("/" + p.lstrip("/")) or p in key:
+            return True
+    return False
+
+
+def _apply_force_on_processed(processed: set, patterns: list[str] | None) -> None:
+    """--force + --only: убрать совпадающие ключи из state, чтобы переработать."""
+    if not patterns:
+        return
+    for k in list(processed):
+        if _key_matches_only(k, patterns):
+            processed.discard(k)
+            logger.info("Снято с учёта (--force): %s", k)
+
+_CF_ENV_KEYS = frozenset(
+    {
+        "CF_ACCESS_CLIENT_ID",
+        "CF_ACCESS_CLIENT_SECRET",
+        "CVAT_CF_ACCESS_CLIENT_ID",
+        "CVAT_CF_ACCESS_CLIENT_SECRET",
+    }
+)
+
+
+def _parse_simple_env_file(path: Path) -> None:
+    try:
+        text = path.read_text(encoding="utf-8")
+    except OSError:
+        return
+    for line in text.splitlines():
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        k, _, v = line.partition("=")
+        k, v = k.strip(), v.strip().strip('"').strip("'")
+        if k in _CF_ENV_KEYS and v:
+            os.environ.setdefault(k, v)
+
+
+def _parse_cf_from_clearml_mdc(path: Path) -> None:
+    """Строки вида CF_ACCESS_CLIENT_ID=... в rules/clearml-training.mdc."""
+    try:
+        text = path.read_text(encoding="utf-8")
+    except OSError:
+        return
+    for raw in text.splitlines():
+        s = raw.strip().lstrip("-").strip().strip("`").strip()
+        if "=" not in s:
+            continue
+        k, _, v = s.partition("=")
+        k, v = k.strip(), v.strip().rstrip("`").strip()
+        if k in ("CF_ACCESS_CLIENT_ID", "CF_ACCESS_CLIENT_SECRET") and v:
+            os.environ.setdefault(k, v)
+
+
+def _ensure_cf_env_from_cursor_context() -> None:
+    """Подставить CF Access из cursor-context-main, если нет в окружении."""
+    cid, csec = _cf_access_tokens()
+    if cid and csec:
+        return
+    spliter_dir = Path(__file__).resolve().parent
+    bases: list[Path] = []
+    root = os.getenv("CURSOR_CONTEXT_ROOT", "").strip()
+    if root:
+        bases.append(Path(root))
+    bases.extend(
+        [
+            spliter_dir.parent.parent / "addSplitter" / "cursor-context-main",
+            spliter_dir.parent / "cursor-context-main",
+            spliter_dir / "cursor-context-main",
+        ]
+    )
+    for base in bases:
+        if not base.is_dir():
+            continue
+        env_p = base / "secrets" / "cloudflare-access.env"
+        if env_p.is_file():
+            _parse_simple_env_file(env_p)
+            cid, csec = _cf_access_tokens()
+            if cid and csec:
+                logger.info("CF Access: загружено из %s", env_p)
+                return
+        mdc = base / "rules" / "clearml-training.mdc"
+        if mdc.is_file():
+            _parse_cf_from_clearml_mdc(mdc)
+            cid, csec = _cf_access_tokens()
+            if cid and csec:
+                logger.info("CF Access: загружено из %s", mdc)
+                return
+
+
+def _cf_access_tokens() -> tuple[str | None, str | None]:
+    cf_id = os.getenv("CF_ACCESS_CLIENT_ID") or os.getenv("CVAT_CF_ACCESS_CLIENT_ID")
+    cf_secret = os.getenv("CF_ACCESS_CLIENT_SECRET") or os.getenv(
+        "CVAT_CF_ACCESS_CLIENT_SECRET"
+    )
+    return cf_id, cf_secret
+
+
+def _parse_minio_endpoint(endpoint_url: str) -> tuple[str, bool]:
+    if endpoint_url.startswith("https://"):
+        p = urlparse(endpoint_url)
+        port = p.port or 443
+        return f"{p.hostname}:{port}", True
+    if endpoint_url.startswith("http://"):
+        p = urlparse(endpoint_url)
+        port = p.port or 80
+        return f"{p.hostname}:{port}", False
+    return endpoint_url, os.getenv("MINIO_SECURE", "").lower() in ("1", "true", "yes")
+
+
+def _endpoint_needs_cloudflare_access(endpoint: str) -> bool:
+    """CF service token только для публичного хоста за Access; не для bs3:9000 и т.п."""
+    e = (endpoint or "").lower()
+    if "multiagent.vision" in e:
+        return True
+    return False
+
+
+def _apply_minio_cf_access(client, cf_id: str, cf_secret: str) -> None:
+    """CF-заголовки на urllib3 после подписи S3 (как в chessverse train)."""
+    from urllib3._collections import HTTPHeaderDict
+
+    orig_http = client._http
+
+    class _CFAccessHTTP:
+        def __getattr__(self, name: str):
+            return getattr(orig_http, name)
+
+        def urlopen(self, method: str, url: str, **kwargs):
+            headers = kwargs.get("headers")
+            if headers is None:
+                headers = HTTPHeaderDict()
+            headers.add("CF-Access-Client-Id", cf_id)
+            headers.add("CF-Access-Client-Secret", cf_secret)
+            kwargs["headers"] = headers
+            return orig_http.urlopen(method, url, **kwargs)
+
+    client._http = _CFAccessHTTP()  # type: ignore[assignment]
+
+
+class StorageClient:
+    """Обёртка над minio SDK (обходит проблемы botocore на Python 3.14+)."""
+
+    def __init__(self, minio_client) -> None:
+        self._minio = minio_client
+
+    def list_video_keys(self, bucket: str, prefix: str) -> list[str]:
+        keys: list[str] = []
+        for obj in self._minio.list_objects(bucket, prefix=prefix, recursive=True):
+            name = getattr(obj, "object_name", None) or getattr(obj, "name", None)
+            if name and name.lower().endswith(VIDEO_EXTENSIONS):
+                keys.append(name)
+        return keys
+
+    def download_file(self, bucket: str, key: str, local_path: str) -> None:
+        self._minio.fget_object(bucket, key, local_path)
+
+    def upload_file(self, local_path: str, bucket: str, key: str) -> None:
+        self._minio.fput_object(bucket, key, local_path)
+
+
+def get_storage_client(config_minio: dict) -> tuple[StorageClient, str, str]:
+    """MinIO/S3 через пакет minio; при CF_* — urllib3-обёртка (после подписи)."""
+    from minio import Minio
+
+    _ensure_cf_env_from_cursor_context()
+    endpoint = config_minio.get("endpoint_url") or os.getenv("S3_ENDPOINT_URL")
     bucket = config_minio.get("bucket_name", "chess-ai")
     access_key, secret_key = find_aws_credentials()
     if not access_key or not secret_key:
@@ -47,24 +268,33 @@ def get_s3_client(config_minio: dict):
         )
     if not endpoint:
         endpoint = find_working_endpoint(bucket, access_key, secret_key)
-    return boto3.client(
-        "s3",
-        endpoint_url=endpoint,
-        aws_access_key_id=access_key,
-        aws_secret_access_key=secret_key,
-    ), endpoint, bucket
+
+    host_port, secure = _parse_minio_endpoint(endpoint)
+    # Явный регион: иначе minio делает GetBucketLocation (?location=), который
+    # Cloudflare Access часто режет до S3-запроса.
+    minio_region = (
+        (config_minio.get("region") if isinstance(config_minio.get("region"), str) else None)
+        or os.getenv("MINIO_REGION")
+        or "us-east-1"
+    )
+    mc = Minio(
+        host_port,
+        access_key=access_key,
+        secret_key=secret_key,
+        secure=secure,
+        region=minio_region,
+    )
+    cf_id, cf_secret = _cf_access_tokens()
+    if cf_id and cf_secret and _endpoint_needs_cloudflare_access(endpoint):
+        _apply_minio_cf_access(mc, cf_id, cf_secret)
+        logger.info("S3: minio + Cloudflare Access → %s", endpoint)
+    else:
+        logger.info("S3: minio → %s (TLS=%s, CF=%s)", host_port, secure, False)
+    return StorageClient(mc), endpoint, bucket
 
 
-def list_video_keys(client, bucket: str, prefix: str) -> list[str]:
-    """Список ключей объектов с видео-расширениями в префиксе."""
-    keys = []
-    paginator = client.get_paginator("list_objects_v2")
-    for page in paginator.paginate(Bucket=bucket, Prefix=prefix):
-        for obj in page.get("Contents") or []:
-            key = obj["Key"]
-            if key.lower().endswith(VIDEO_EXTENSIONS):
-                keys.append(key)
-    return keys
+def list_video_keys(storage: StorageClient, bucket: str, prefix: str) -> list[str]:
+    return storage.list_video_keys(bucket, prefix)
 
 
 def load_processed_state(state_path: str) -> set[str]:
@@ -81,45 +311,77 @@ def save_processed_state(state_path: str, processed: set):
         json.dump(list(processed), f, ensure_ascii=False)
 
 
-def download_file(client, bucket: str, key: str, local_path: str):
-    client.download_file(bucket, key, local_path)
-
-
-def upload_directory_to_s3(client, bucket: str, prefix: str, local_dir: str):
+def upload_directory_to_s3(
+    storage: StorageClient,
+    bucket: str,
+    prefix: str,
+    local_dir: str,
+    *,
+    show_progress: bool = False,
+):
     """Рекурсивно загружает директорию в S3 под префикс prefix/."""
     local_path = Path(local_dir)
     if not local_path.is_dir():
         return
     prefix = prefix.rstrip("/")
-    for f in local_path.rglob("*"):
-        if not f.is_file():
-            continue
+    files = sorted(f for f in local_path.rglob("*") if f.is_file())
+    if not files:
+        return
+    iterator = files
+    if show_progress:
+        iterator = tqdm(
+            files,
+            desc="Upload в MinIO",
+            unit="файл",
+            mininterval=0.3,
+        )
+    for f in iterator:
         rel = f.relative_to(local_path)
         s3_key = f"{prefix}/{rel.as_posix()}"
         try:
-            client.upload_file(str(f), bucket, s3_key)
-            logger.info("Upload: %s", s3_key)
-        except ClientError as e:
+            storage.upload_file(str(f), bucket, s3_key)
+            if not show_progress:
+                logger.info("Upload: %s", s3_key)
+        except Exception as e:
             logger.error("Ошибка загрузки %s: %s", s3_key, e)
 
 
 def process_one_key(
-    client,
+    storage: StorageClient,
     bucket: str,
     key: str,
     config: dict,
     config_minio: dict,
     tmp_dir: str,
+    *,
+    use_progress: bool = True,
 ) -> bool:
     """Скачать ключ, обработать, выгрузить результат в MinIO. Возвращает True при успехе."""
+    t0 = time.perf_counter()
+    logger.info(
+        "─── Старт: %s | %s ───",
+        key,
+        datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+    )
     input_prefix = (config_minio.get("input_prefix") or "").strip().rstrip("/")
     output_prefix = (config_minio.get("output_prefix") or "spliter_output").strip().rstrip("/")
     local_path = os.path.join(tmp_dir, os.path.basename(key))
     try:
         logger.info("Download: %s -> %s", key, local_path)
-        download_file(client, bucket, key, local_path)
+        storage.download_file(bucket, key, local_path)
+        sz = os.path.getsize(local_path)
+        if sz >= 1024 * 1024:
+            sz_h = f"{sz // (1024 * 1024)} МБ"
+        else:
+            sz_h = f"{max(sz // 1024, 1)} КБ"
+        logger.info("Скачано: %s (%s), начинаю извлечение кадров…", key, sz_h)
     except Exception as e:
         logger.exception("Не удалось скачать %s: %s", key, e)
+        logger.info(
+            "─── Прервано (ошибка скачивания): %s | %s ───",
+            key,
+            datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        )
         return False
 
     # Конвертация H.265 при необходимости
@@ -138,11 +400,18 @@ def process_one_key(
     out_dir = os.path.join(tmp_dir, "out")
     os.makedirs(out_dir, exist_ok=True)
     config_run = {**config, "output_folder": out_dir, "use_video_files": True}
+    if not use_progress:
+        config_run["show_progress"] = False
 
     try:
         extract_frames_for_video((local_path, config_run))
     except Exception as e:
         logger.exception("Ошибка обработки %s: %s", key, e)
+        logger.info(
+            "─── Прервано (пайплайн): %s | %.1f мин ───",
+            key,
+            (time.perf_counter() - t0) / 60.0,
+        )
         return False
 
     video_name = safe_video_name(local_path)
@@ -152,25 +421,70 @@ def process_one_key(
         return False
 
     s3_out_prefix = f"{output_prefix}/{video_name}"
-    logger.info("Upload результата: %s -> %s", video_out_dir, s3_out_prefix)
-    upload_directory_to_s3(client, bucket, s3_out_prefix, video_out_dir)
+    logger.info(
+        "Загрузка в MinIO: s3://%s/%s/{jpeg|png}/…",
+        bucket,
+        s3_out_prefix,
+    )
+    upload_directory_to_s3(
+        storage,
+        bucket,
+        s3_out_prefix,
+        video_out_dir,
+        show_progress=use_progress,
+    )
+    elapsed = time.perf_counter() - t0
+    logger.info(
+        "─── Конец: %s | длительность %.2f мин | %s ───",
+        key,
+        elapsed / 60.0,
+        datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+    )
+    logger.info("Готово: %s → префикс %s", key, s3_out_prefix)
     return True
 
 
-def run_once(config: dict, config_minio: dict, state_path: str, processed: set):
-    client, endpoint, bucket = get_s3_client(config_minio)
+def run_once(
+    config: dict,
+    config_minio: dict,
+    state_path: str,
+    processed: set,
+    *,
+    only_patterns: list[str] | None = None,
+    use_progress: bool = True,
+):
+    storage, endpoint, bucket = get_storage_client(config_minio)
     logger.info("MinIO bucket=%s, input_prefix=%s", bucket, config_minio.get("input_prefix"))
     input_prefix = (config_minio.get("input_prefix") or "").strip().rstrip("/")
     if input_prefix and not input_prefix.endswith("/"):
         input_prefix += "/"
-    keys = list_video_keys(client, bucket, input_prefix)
+    keys = list_video_keys(storage, bucket, input_prefix)
+    if only_patterns:
+        keys = [k for k in keys if _key_matches_only(k, only_patterns)]
+        logger.info("Фильтр --only=%s → ключей: %s", only_patterns, len(keys))
+        if not keys:
+            logger.warning("Ни один ключ не подошёл под --only")
+            return processed
     new_keys = [k for k in keys if k not in processed]
     if not new_keys:
         logger.info("Новых видео нет.")
         return processed
-    with tempfile.TemporaryDirectory(prefix="spliter_minio_") as tmp_dir:
-        for key in new_keys:
-            if process_one_key(client, bucket, key, config, config_minio, tmp_dir):
+    work_dir = _work_dir_from_config(config_minio)
+    logger.info("Временные файлы и кеш на диске: %s", work_dir)
+    with tempfile.TemporaryDirectory(prefix="spliter_minio_", dir=work_dir) as tmp_dir:
+        key_iter = new_keys
+        if use_progress and len(new_keys) > 1:
+            key_iter = tqdm(new_keys, desc="Очередь видео (MinIO)", unit="файл")
+        for key in key_iter:
+            if process_one_key(
+                storage,
+                bucket,
+                key,
+                config,
+                config_minio,
+                tmp_dir,
+                use_progress=use_progress,
+            ):
                 processed.add(key)
     return processed
 
@@ -185,20 +499,52 @@ def main():
             "Добавьте: minio: { bucket_name, input_prefix, output_prefix, endpoint_url? }"
         )
         sys.exit(1)
-    state_path = config_minio.get("state_file") or "minio_processed.json"
+    if "--no-progress" in sys.argv:
+        config["show_progress"] = False
+    use_progress = bool(config.get("show_progress", True))
+
+    raw_state = config_minio.get("state_file") or "minio_processed.json"
+    state_path = _resolve_state_path(raw_state)
     processed = load_processed_state(state_path)
     once = "--once" in sys.argv
     poll_interval = max(60, int(config_minio.get("poll_interval_sec", 300)))
+    only_patterns = _parse_only_arg(sys.argv)
+    if "--force" in sys.argv and only_patterns:
+        _apply_force_on_processed(processed, only_patterns)
 
     if once:
-        processed = run_once(config, config_minio, state_path, processed)
+        logger.info(
+            "════════ minio_worker: старт сессии %s ════════",
+            datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        )
+        t_sess = time.perf_counter()
+        processed = run_once(
+            config,
+            config_minio,
+            state_path,
+            processed,
+            only_patterns=only_patterns,
+            use_progress=use_progress,
+        )
         save_processed_state(state_path, processed)
+        logger.info(
+            "════════ финиш сессии %s | длительность %.2f мин ════════",
+            datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            (time.perf_counter() - t_sess) / 60.0,
+        )
         return
 
     logger.info("Режим опроса MinIO каждые %s сек. Ctrl+C для выхода.", poll_interval)
     while True:
         try:
-            processed = run_once(config, config_minio, state_path, processed)
+            processed = run_once(
+                config,
+                config_minio,
+                state_path,
+                processed,
+                only_patterns=only_patterns,
+                use_progress=use_progress,
+            )
             save_processed_state(state_path, processed)
         except Exception as e:
             logger.exception("Ошибка цикла: %s", e)

@@ -4,6 +4,17 @@ import json
 import hashlib
 
 
+def _to_ffmpeg_path(path, ffmpeg_path):
+    """Convert /mnt/d/... WSL paths to D:\\... for Windows ffmpeg.exe."""
+    if ffmpeg_path.endswith(".exe") and path.startswith("/mnt/"):
+        parts = path.split("/", 3)  # ['', 'mnt', 'd', 'rest']
+        if len(parts) >= 3:
+            drive = parts[2].upper()
+            rest = parts[3] if len(parts) > 3 else ""
+            return f"{drive}:\\" + rest.replace("/", "\\")
+    return path
+
+
 def ffprobe_info(path):
     """
     Возвращает словарь с width, height, fps.
@@ -91,13 +102,17 @@ def convert_h265_to_video(input_path, ffmpeg_path="ffmpeg", cache_dir="cache_h26
     # 2) попытка собрать MKV без перекодирования
     print("[H265] Пробую упаковать в MKV (без перекодирования)...")
 
+    ff_input = _to_ffmpeg_path(input_path, ffmpeg_path)
+    ff_mkv = _to_ffmpeg_path(mkv_path, ffmpeg_path)
+    ff_mp4 = _to_ffmpeg_path(mp4_path, ffmpeg_path)
+
     cmd_mkv = [
         ffmpeg_path,
         "-fflags", "+genpts",
         "-r", f"{fps}",
-        "-i", input_path,
+        "-i", ff_input,
         "-c", "copy",
-        mkv_path,
+        ff_mkv,
         "-y"
     ]
 
@@ -128,11 +143,11 @@ def convert_h265_to_video(input_path, ffmpeg_path="ffmpeg", cache_dir="cache_h26
             cmd_mp4 += ["-s", f"{width}x{height}"]
 
         cmd_mp4 += [
-            "-i", input_path,
+            "-i", ff_input,
             "-c:v", "libx265",
             "-preset", "medium",
             "-crf", "18",
-            mp4_path,
+            ff_mp4,
             "-y"
         ]
 

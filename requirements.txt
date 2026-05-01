@@ -4,3 +4,5 @@ albumentations
 yt_dlp
 gdown
 boto3
+minio>=7.2.0
+tqdm>=4.66.0
