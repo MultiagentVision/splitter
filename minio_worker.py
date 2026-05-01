@@ -456,6 +456,16 @@ def process_one_key(
         elapsed_total / 60.0,
         datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
     )
+
+    # ── Cleanup: удаляем скачанный и сконвертированный файлы для экономии места ──
+    for cleanup_path in {local_path, converted_path}:
+        if cleanup_path and os.path.isfile(cleanup_path):
+            try:
+                os.remove(cleanup_path)
+                logger.info("[CLEANUP] Удалён временный файл: %s", cleanup_path)
+            except Exception as e:
+                logger.warning("[CLEANUP] Не удалось удалить %s: %s", cleanup_path, e)
+
     return True
 
 
@@ -542,6 +552,12 @@ def main():
     once = "--once" in sys.argv
     poll_interval = max(60, int(config_minio.get("poll_interval_sec", 300)))
     only_patterns = _parse_only_arg(sys.argv)
+    # ONLY_KEYS env var (K8s Job / Docker run) — comma-separated list of keys
+    if not only_patterns:
+        env_only = os.environ.get("ONLY_KEYS", "").strip()
+        if env_only:
+            only_patterns = [x.strip() for x in env_only.split(",") if x.strip()]
+            logger.info("ONLY_KEYS (env): %d ключей", len(only_patterns))
     if "--force" in sys.argv and only_patterns:
         _apply_force_on_processed(processed, only_patterns)
 
