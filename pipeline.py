@@ -318,6 +318,7 @@ def extract_frames_for_video(args):
                 logger.warning(
                     f"Кадр {target_idx} ПОВРЕЖДЁН (idx={'первый' if target_idx == 0 else 'последний' if target_idx == total_frames - 1 else target_idx}) — ищем замену"
                 )
+                original_frame = frame2
                 # Сначала пробуем следующий хороший кадр
                 ret2, frame2, good_idx = find_next_good_frame(
                     target_idx + 1,
@@ -342,10 +343,15 @@ def extract_frames_for_video(args):
                         base_path_str,
                     )
                 if not ret2 or frame2 is None:
-                    logger.warning(f"Не найден хороший кадр для позиции {target_idx}, пропускаю")
-                    continue
-                logger.info(f"Использован кадр {good_idx} вместо повреждённого {target_idx}")
-                _log_frame_stats(logger, frame2, good_idx, label="замена")
+                    # Замена не найдена — сохраняем оригинал с предупреждением
+                    # (лучше тёмный кадр, чем пропустить позицию)
+                    logger.warning(
+                        f"Замена для кадра {target_idx} не найдена — сохраняем оригинал как есть"
+                    )
+                    frame2 = original_frame
+                else:
+                    logger.info(f"Использован кадр {good_idx} вместо повреждённого {target_idx}")
+                    _log_frame_stats(logger, frame2, good_idx, label="замена")
 
             aug_frame = apply_augmentations(frame2, transform)
             saved_count += 1
