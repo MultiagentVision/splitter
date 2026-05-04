@@ -95,6 +95,8 @@ def get_frame_ffmpeg(
 
     cmd = [
         ffmpeg_path,
+        "-fflags", "+discardcorrupt",
+        "-err_detect", "ignore_err",
         "-ss", f"{timestamp:.3f}",
         *extra_input_flags,
         "-i", video_path,
@@ -150,6 +152,21 @@ def get_frame_ffmpeg(
         "get_frame_ffmpeg: idx=%d OK shape=%dx%d B=%.1f G=%.1f R=%.1f",
         frame_idx, width, height, b_mean, g_mean, r_mean,
     )
+
+    # Отклонить blank-кадр (серый или зелёный артефакт Linux libhevc)
+    is_gray_blank = (
+        max(b_mean, g_mean, r_mean) < 40
+        and abs(b_mean - g_mean) < 8
+        and abs(b_mean - r_mean) < 8
+    )
+    is_green_blank = g_mean > b_mean + 25 and g_mean > r_mean + 25 and g_mean > 50
+    if is_gray_blank or is_green_blank:
+        logger.warning(
+            "get_frame_ffmpeg: BLANK кадр idx=%d t=%.3fs B=%.1f G=%.1f R=%.1f (gray=%s green=%s)",
+            frame_idx, timestamp, b_mean, g_mean, r_mean, is_gray_blank, is_green_blank,
+        )
+        return False, None
+
     return True, frame
 
 
