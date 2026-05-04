@@ -119,7 +119,7 @@ spec:
   serviceAccountName: jenkins-deployer
   containers:
   - name: kubectl
-    image: bitnami/kubectl:latest
+    image: alpine/k8s:1.28.3
     command: ["/bin/sh", "-c", "sleep infinity"]
     tty: true
 """
