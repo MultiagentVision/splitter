@@ -153,17 +153,13 @@ def get_frame_ffmpeg(
         frame_idx, width, height, b_mean, g_mean, r_mean,
     )
 
-    # Отклонить blank-кадр (серый или зелёный артефакт Linux libhevc)
-    is_gray_blank = (
-        max(b_mean, g_mean, r_mean) < 40
-        and abs(b_mean - g_mean) < 8
-        and abs(b_mean - r_mean) < 8
-    )
-    is_green_blank = g_mean > b_mean + 25 and g_mean > r_mean + 25 and g_mean > 50
-    if is_gray_blank or is_green_blank:
+    # Отклонить blank-кадр: низкая дисперсия = равномерный цвет (серый, зелёный, чёрный)
+    # Шахматная доска имеет std >> 50; любой артефакт libhevc — std < 15
+    std_val = float(np.std(frame))
+    if std_val < 25.0:
         logger.warning(
-            "get_frame_ffmpeg: BLANK кадр idx=%d t=%.3fs B=%.1f G=%.1f R=%.1f (gray=%s green=%s)",
-            frame_idx, timestamp, b_mean, g_mean, r_mean, is_gray_blank, is_green_blank,
+            "get_frame_ffmpeg: BLANK кадр idx=%d t=%.3fs std=%.1f B=%.1f G=%.1f R=%.1f",
+            frame_idx, timestamp, std_val, b_mean, g_mean, r_mean,
         )
         return False, None
 
