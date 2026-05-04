@@ -197,17 +197,19 @@ spec:
 """
                     sh "kubectl apply -f splitter-job-run.yaml"
                     echo "K8s Job создан: ${jobName}"
-                    echo "Логи: kubectl logs -n ${NAMESPACE} -l app=splitter --tail=100 -f"
 
                     // Ожидаем завершения (до 4 часов)
                     def waitResult = sh(
                         script: "kubectl wait --for=condition=complete --timeout=14400s job/${jobName} -n ${NAMESPACE}",
                         returnStatus: true
                     )
+                    // Всегда собираем логи пода (и при успехе и при ошибке)
+                    echo "=== K8s Pod Logs ==="
+                    sh "kubectl logs -n ${NAMESPACE} --selector=job-name=${jobName} --tail=500 || true"
+                    echo "=== End of Pod Logs ==="
+
                     if (waitResult != 0) {
-                        // Собираем логи для диагностики
-                        sh "kubectl logs -n ${NAMESPACE} -l app=splitter --tail=200 || true"
-                        error("K8s Job ${jobName} не завершился успешно. См. логи выше. Используй Вариант A (SSH) как fallback.")
+                        error("K8s Job ${jobName} не завершился успешно. См. логи выше.")
                     }
                     echo "K8s Job ${jobName} завершён успешно."
                 }
