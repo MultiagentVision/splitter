@@ -201,47 +201,49 @@ def convert_h265_to_video(input_path: str, ffmpeg_path: str = "ffmpeg", cache_di
 
     out_path = None
 
-    # 3) Попытка MKV stream-copy с -f hevc
-    logger.info("[MKV] Попытка stream-copy без перекодирования (-f hevc)...")
-    cmd_mkv = [
+    # 3) Основной путь: MP4 re-encode libx264 (гарантированно читаемый на Linux/Docker)
+    # Stream-copy MKV НЕ используем как основной путь — Linux ffmpeg software HEVC decoder
+    # не всегда может декодировать raw HEVC bitstream, что приводит к серым кадрам.
+    logger.info("[MP4/libx264] Начало перекодирования (основной путь)...")
+    cmd_mp4 = [
         ffmpeg_path,
         "-f", "hevc",
         "-r", str(fps),
-        "-i", ff_input,
-        "-c", "copy",
-        "-y", ff_mkv,
     ]
-    ok_mkv, _ = _run_ffmpeg(cmd_mkv, "MKV")
-    if ok_mkv and _verify_output(mkv_path, "MKV"):
-        logger.info("[MKV] Успешно создан: %s", mkv_path)
-        out_path = mkv_path
+    if width and height:
+        cmd_mp4 += ["-s", f"{width}x{height}"]
+    cmd_mp4 += [
+        "-i", ff_input,
+        "-c:v", "libx264",
+        "-preset", "fast",
+        "-crf", "18",
+        "-movflags", "+faststart",
+        "-y", ff_mp4,
+    ]
+    ok_mp4, stderr_mp4 = _run_ffmpeg(cmd_mp4, "MP4/libx264")
+    if ok_mp4 and _verify_output(mp4_path, "MP4/libx264"):
+        logger.info("[MP4/libx264] Успешно создан: %s", mp4_path)
+        out_path = mp4_path
     else:
-        logger.warning("[MKV] Не удалось — переходим к MP4 re-encode (libx264)")
+        logger.warning("[MP4/libx264] Не удалось — пробуем MKV stream-copy. stderr: %s", stderr_mp4[-300:])
 
-    # 4) Fallback: MP4 re-encode libx264 (не libx265 — быстрее и лучший seeking)
+    # 4) Fallback: MKV stream-copy (без перекодирования, только если libx264 недоступен)
     if out_path is None:
-        logger.info("[MP4/libx264] Начало перекодирования...")
-        cmd_mp4 = [
+        logger.info("[MKV] Попытка stream-copy (-f hevc, fallback)...")
+        cmd_mkv = [
             ffmpeg_path,
             "-f", "hevc",
             "-r", str(fps),
-        ]
-        if width and height:
-            cmd_mp4 += ["-s", f"{width}x{height}"]
-        cmd_mp4 += [
             "-i", ff_input,
-            "-c:v", "libx264",
-            "-preset", "fast",
-            "-crf", "18",
-            "-movflags", "+faststart",
-            "-y", ff_mp4,
+            "-c", "copy",
+            "-y", ff_mkv,
         ]
-        ok_mp4, stderr = _run_ffmpeg(cmd_mp4, "MP4/libx264")
-        if ok_mp4 and _verify_output(mp4_path, "MP4/libx264"):
-            logger.info("[MP4/libx264] Успешно создан: %s", mp4_path)
-            out_path = mp4_path
+        ok_mkv, stderr = _run_ffmpeg(cmd_mkv, "MKV")
+        if ok_mkv and _verify_output(mkv_path, "MKV"):
+            logger.info("[MKV] Создан (fallback): %s", mkv_path)
+            out_path = mkv_path
         else:
-            logger.error("[MP4/libx264] Не удалось конвертировать. stderr: %s", stderr[-400:])
+            logger.error("[MKV] Не удалось конвертировать. stderr: %s", stderr[-400:])
 
     if out_path is None:
         logger.error("Не удалось конвертировать %s — файл недоступен для обработки", input_path)
