@@ -31,7 +31,10 @@ def ffprobe_get_resolution(path: str, ffmpeg_path: str = "ffmpeg") -> tuple[int,
         logger.debug("ffprobe_get_resolution: кэш для %s → %s", path, _resolution_cache[path])
         return _resolution_cache[path]
 
-    ffprobe = ffmpeg_path.replace("ffmpeg", "ffprobe") if "ffmpeg" in ffmpeg_path else "ffprobe"
+    import os as _os
+    _ffmpeg_dir = _os.path.dirname(ffmpeg_path)
+    _ffmpeg_base = _os.path.basename(ffmpeg_path)
+    ffprobe = _os.path.join(_ffmpeg_dir, _ffmpeg_base.replace("ffmpeg", "ffprobe")) if "ffmpeg" in _ffmpeg_base else "ffprobe"
 
     def _try(extra_flags: list) -> tuple[int, int] | None:
         cmd = [

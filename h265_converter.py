@@ -33,7 +33,10 @@ def ffprobe_info(path: str, ffmpeg_path: str = "ffmpeg") -> dict:
     Возвращает dict с width, height, fps, duration_sec, codec.
     Использует -f hevc как fallback для raw bitstream.
     """
-    ffprobe = ffmpeg_path.replace("ffmpeg", "ffprobe") if "ffmpeg" in ffmpeg_path else "ffprobe"
+    import os as _os
+    _ffmpeg_dir = _os.path.dirname(ffmpeg_path)
+    _ffmpeg_base = _os.path.basename(ffmpeg_path)
+    ffprobe = _os.path.join(_ffmpeg_dir, _ffmpeg_base.replace("ffmpeg", "ffprobe")) if "ffmpeg" in _ffmpeg_base else "ffprobe"
     fp = _to_ffmpeg_path(path, ffprobe)
 
     def _run(extra_flags: list) -> dict | None:
