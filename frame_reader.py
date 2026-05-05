@@ -2,9 +2,11 @@
 Извлечение кадров из видеофайлов.
 
 get_frame_ffmpeg: поддерживает raw .h265/.hevc через -f hevc флаг.
+На Windows автоматически использует D3D11VA (аппаратное декодирование с error concealment).
 Все шаги логируются (команда, размер данных, статистика кадра).
 """
 import logging
+import platform
 import subprocess
 
 import cv2
@@ -19,6 +21,17 @@ _resolution_cache: dict = {}
 
 def _is_raw_hevc(path: str) -> bool:
     return path.lower().endswith((".h265", ".hevc"))
+
+
+def _get_hwaccel_flags() -> list:
+    """
+    Возвращает флаги аппаратного декодирования для текущей платформы.
+    На Windows: D3D11VA — аппаратный декодер HEVC с error concealment.
+    Corrupted CTU не приводят к зелёному/серому кадру — декодер маскирует артефакты.
+    """
+    if platform.system() == "Windows":
+        return ["-hwaccel", "d3d11va"]
+    return []
 
 
 def ffprobe_get_resolution(path: str, ffmpeg_path: str = "ffmpeg") -> tuple[int, int]:
@@ -82,6 +95,7 @@ def _build_seek_cmd(
     extra_input_flags: list,
     slow_seek: bool = False,
     pre_seek_s: float = 60.0,
+    hwaccel_flags: list | None = None,
 ) -> list:
     """
     Строит ffmpeg команду для извлечения одного кадра.
@@ -91,7 +105,11 @@ def _build_seek_cmd(
       1. fast pre-seek к (timestamp - pre_seek_s) — прыгаем к чистому IDR ~60с назад
       2. slow fine-seek на pre_seek_s вперёд — декодируем последовательно,
          P/B-кадры получают правильный reference от чистого IDR.
+
+    hwaccel_flags: флаги аппаратного декодирования (должны идти ДО -i).
     """
+    if hwaccel_flags is None:
+        hwaccel_flags = []
     base_flags = ["-fflags", "+discardcorrupt", "-err_detect", "ignore_err"]
     output_flags = [
         "-vframes", "1",
@@ -106,6 +124,7 @@ def _build_seek_cmd(
         fine_s = timestamp - pre_ts
         return [
             ffmpeg_path,
+            *hwaccel_flags,
             *base_flags,
             "-ss", f"{pre_ts:.3f}",
             *extra_input_flags,
@@ -115,6 +134,7 @@ def _build_seek_cmd(
         ]
     return [
         ffmpeg_path,
+        *hwaccel_flags,
         *base_flags,
         "-ss", f"{timestamp:.3f}",
         *extra_input_flags,
@@ -203,8 +223,13 @@ def get_frame_ffmpeg(
     if _is_raw_hevc(video_path):
         extra_input_flags = ["-f", "hevc"]
 
+    hwaccel = _get_hwaccel_flags()
+    if hwaccel:
+        logger.info("get_frame_ffmpeg: аппаратное декодирование %s idx=%d", hwaccel, frame_idx)
+
     # Tier 1: fast seek
-    cmd = _build_seek_cmd(ffmpeg_path, video_path, timestamp, extra_input_flags, slow_seek=False)
+    cmd = _build_seek_cmd(ffmpeg_path, video_path, timestamp, extra_input_flags,
+                          slow_seek=False, hwaccel_flags=hwaccel)
     ok, frame = _run_frame_cmd(cmd, frame_idx, timestamp, frame_size, width, height, "fast")
     if ok:
         return True, frame
@@ -212,7 +237,7 @@ def get_frame_ffmpeg(
     # Tier 2: slow seek with 60s pre-seek window
     logger.info("get_frame_ffmpeg: fast blank → slow-seek(60s) idx=%d t=%.3fs", frame_idx, timestamp)
     cmd = _build_seek_cmd(ffmpeg_path, video_path, timestamp, extra_input_flags,
-                          slow_seek=True, pre_seek_s=60.0)
+                          slow_seek=True, pre_seek_s=60.0, hwaccel_flags=hwaccel)
     ok, frame = _run_frame_cmd(cmd, frame_idx, timestamp, frame_size, width, height, "slow-60s")
     if ok:
         return True, frame
@@ -224,7 +249,7 @@ def get_frame_ffmpeg(
             continue
         logger.info("get_frame_ffmpeg: nearby dt=%+ds → ts=%.3fs idx=%d", dt, ts_alt, frame_idx)
         cmd = _build_seek_cmd(ffmpeg_path, video_path, ts_alt, extra_input_flags,
-                              slow_seek=True, pre_seek_s=60.0)
+                              slow_seek=True, pre_seek_s=60.0, hwaccel_flags=hwaccel)
         ok, frame = _run_frame_cmd(cmd, frame_idx, ts_alt, frame_size, width, height, f"nearby{dt:+d}s")
         if ok:
             logger.info("get_frame_ffmpeg: чистый кадр найден dt=%+ds (t=%.3f→%.3f) idx=%d",
