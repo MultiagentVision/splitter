@@ -104,10 +104,53 @@ spec:
             }
         }
 
-        // ── Вариант B: K8s Job ─────────────────────────────────────────────
+        // ── Вариант W: Windows agent (D3D11VA hardware HEVC decoder) ──────────
+        stage('Run Splitter (Windows — HEVC)') {
+            when {
+                allOf {
+                    expression { return params.RUN_SPLITTER == true }
+                    expression {
+                        def keys = params.ONLY_KEYS?.toLowerCase() ?: ''
+                        return keys.contains('.h265') || keys.contains('.hevc')
+                    }
+                }
+            }
+            agent { label 'windows-hevc' }
+            steps {
+                unstash 'workspace'
+                script {
+                    def onlyArg = params.ONLY_KEYS?.trim() ?: ''
+                    def outPrefix = params.OUTPUT_PREFIX?.trim() ?: 'video/splitter_output'
+                    withCredentials([
+                        usernamePassword(
+                            credentialsId: 'splitter-minio-creds',
+                            usernameVariable: 'AWS_ACCESS_KEY_ID',
+                            passwordVariable: 'AWS_SECRET_ACCESS_KEY'
+                        )
+                    ]) {
+                        withEnv([
+                            "FRAME_MODE=${params.FRAME_MODE}",
+                            "QUALITY_LEVEL=low",
+                            "MINIO_OUTPUT_PREFIX=${outPrefix}",
+                            "ONLY_KEYS=${onlyArg}"
+                        ]) {
+                            bat "pip install -q -r requirements.txt && python minio_worker.py --once --no-progress"
+                        }
+                    }
+                }
+            }
+        }
+
+        // ── Вариант B: K8s Job (для не-HEVC форматов) ─────────────────────────
         stage('Deploy K8s Job') {
             when {
-                expression { return params.RUN_SPLITTER == true }
+                allOf {
+                    expression { return params.RUN_SPLITTER == true }
+                    expression {
+                        def keys = params.ONLY_KEYS?.toLowerCase() ?: ''
+                        return !keys.contains('.h265') && !keys.contains('.hevc')
+                    }
+                }
             }
             agent {
                 kubernetes {
