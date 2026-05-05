@@ -195,6 +195,41 @@ def _run_frame_cmd(
     return True, frame
 
 
+_ABNORMAL_FPS_THRESHOLD = 500.0  # fps выше этого = нет нормальных timestamps у NVR
+
+
+def _build_frame_select_cmd(
+    ffmpeg_path: str,
+    video_path: str,
+    frame_n: int,
+    extra_input_flags: list,
+    hwaccel_flags: list | None = None,
+) -> list:
+    """
+    Извлечение кадра по НОМЕРУ кадра (без временного seek).
+    Используется когда fps аномально высокий (>500) — NVR без нормальных timestamps.
+    Декодирует последовательно до нужного кадра.
+    """
+    if hwaccel_flags is None:
+        hwaccel_flags = []
+    return [
+        ffmpeg_path,
+        *hwaccel_flags,
+        "-fflags", "+discardcorrupt",
+        "-err_detect", "ignore_err",
+        *extra_input_flags,
+        "-i", video_path,
+        "-vf", f"select=gte(n\\,{frame_n})",
+        "-vsync", "0",
+        "-vframes", "1",
+        "-f", "image2pipe",
+        "-pix_fmt", "bgr24",
+        "-vcodec", "rawvideo",
+        "-loglevel", "error",
+        "-",
+    ]
+
+
 def get_frame_ffmpeg(
     video_path: str,
     frame_idx: int,
@@ -202,22 +237,17 @@ def get_frame_ffmpeg(
     ffmpeg_path: str = "ffmpeg",
 ) -> tuple[bool, "np.ndarray | None"]:
     """
-    Извлекает один кадр через ffmpeg. 3-уровневый retry для HEVC без GPU:
+    Извлекает один кадр через ffmpeg.
 
-    Tier 1 — Fast seek (ss before -i): быстро, попадает на ближайший IDR.
-              Если IDR чистый — готово. Если corrupted CTU → blank → retry.
+    Если fps аномальный (>500, NVR без timestamps): выбор по номеру кадра
+    с перебором frame_idx, frame_idx+1, ..., frame_idx+30 до чистого.
 
-    Tier 2 — Slow seek 60s window (ss after -i): fast pre-seek к T-60s,
-              затем последовательный decode 60s. P/B-кадры получают reference
-              от чистого IDR из окна, а не от потенциально битого IDR у T.
+    Если fps нормальный: 3-уровневый seek retry (fast→slow→nearby±20s).
 
-    Tier 3 — Nearby timestamps ±5…±20s: сдвигаемся по времени пока не найдём
-              IDR без corrupted CTU. Для шахматной статичной камеры кадры
-              эквивалентны — нужен просто чистый IDR в ±20с окне.
+    На Windows добавляет D3D11VA для аппаратного HEVC декодирования.
     """
     width, height = ffprobe_get_resolution(video_path, ffmpeg_path)
     frame_size = width * height * 3
-    timestamp = frame_idx / fps if fps > 0 else 0.0
 
     extra_input_flags: list = []
     if _is_raw_hevc(video_path):
@@ -226,6 +256,20 @@ def get_frame_ffmpeg(
     hwaccel = _get_hwaccel_flags()
     if hwaccel:
         logger.info("get_frame_ffmpeg: аппаратное декодирование %s idx=%d", hwaccel, frame_idx)
+
+    # Аномальный fps → NVR без нормальных timestamps, используем выбор по номеру кадра
+    if fps > _ABNORMAL_FPS_THRESHOLD:
+        logger.info("get_frame_ffmpeg: аномальный fps=%.0f → frame-select idx=%d", fps, frame_idx)
+        for n in range(frame_idx, frame_idx + 30):
+            cmd = _build_frame_select_cmd(ffmpeg_path, video_path, n, extra_input_flags, hwaccel)
+            ok, frame = _run_frame_cmd(cmd, n, float(n), frame_size, width, height, f"fsel-n{n}")
+            if ok:
+                logger.info("get_frame_ffmpeg: frame-select нашёл чистый n=%d для idx=%d", n, frame_idx)
+                return True, frame
+        logger.warning("get_frame_ffmpeg: frame-select 30 попыток провалились idx=%d", frame_idx)
+        return False, None
+
+    timestamp = frame_idx / fps if fps > 0 else 0.0
 
     # Tier 1: fast seek
     cmd = _build_seek_cmd(ffmpeg_path, video_path, timestamp, extra_input_flags,
