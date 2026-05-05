@@ -188,10 +188,17 @@ def convert_h265_to_video(input_path: str, ffmpeg_path: str = "ffmpeg", cache_di
     info = ffprobe_info(input_path, ffmpeg_path)
     width = info["width"] or None
     height = info["height"] or None
-    fps = info["fps"] or 25.0
+    fps_raw = info["fps"] or 25.0
+
+    # NVR HEVC часто имеет ненормальный fps (>500) из-за отсутствия proper timestamps.
+    # Нормализуем до 25fps — типичное значение для IP-камер.
+    # Это исправляет кривые timestamps в MKV (dur=1ms, r_frame_rate=1000/1).
+    fps = fps_raw if fps_raw <= 500 else 25.0
+    if fps_raw > 500:
+        logger.info("fps=%s аномальный → нормализован до %.0f для MKV контейнера", fps_raw, fps)
 
     logger.info("Параметры входа: %dx%d fps=%.3f codec=%s dur=%s",
-                width or 0, height or 0, fps, info.get("codec"), info.get("duration_sec"))
+                width or 0, height or 0, fps_raw, info.get("codec"), info.get("duration_sec"))
 
     folder = os.path.dirname(input_path)
     base = os.path.splitext(os.path.basename(input_path))[0]
