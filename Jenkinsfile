@@ -134,7 +134,7 @@ spec:
                             "MINIO_OUTPUT_PREFIX=${outPrefix}",
                             "ONLY_KEYS=${onlyArg}"
                         ]) {
-                            bat "C:\\Python312\\python.exe -m pip install -q -r requirements.txt && C:\\Python312\\python.exe minio_worker.py --once --no-progress"
+                            bat "C:\\Python312\\python.exe -m pip install -q --user -r requirements.txt && C:\\Python312\\python.exe minio_worker.py --once --no-progress"
                         }
                     }
                 }
