@@ -390,6 +390,7 @@ def process_one_key(
             local_path,
             ffmpeg_path=config.get("ffmpeg_path", "ffmpeg"),
             cache_dir=os.path.join(tmp_dir, "cache_h265"),
+            strategy=config.get("h265_conversion", "stream_copy"),
         )
         elapsed_conv = time.perf_counter() - t_conv
         if converted:

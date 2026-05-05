@@ -145,16 +145,19 @@ def _verify_output(path: str, label: str) -> bool:
     return True
 
 
-def convert_h265_to_video(input_path: str, ffmpeg_path: str = "ffmpeg", cache_dir: str = "cache_h265") -> str | None:
+def convert_h265_to_video(input_path: str, ffmpeg_path: str = "ffmpeg", cache_dir: str = "cache_h265", strategy: str = "stream_copy") -> str | None:
     """
     Конвертирует raw H.265/HEVC в видеофайл пригодный для seeking.
 
+    strategy="stream_copy"  — PRIMARY: MKV stream-copy (быстро, без потерь),
+                              FALLBACK: MP4 libx264 re-encode.
+    strategy="libx264"      — PRIMARY: MP4 libx264 re-encode (частые I-frame,
+                              нет серых/зелёных кадров), FALLBACK: MKV stream-copy.
+
     Цепочка (Вариант 5 — no-GPU slow-seek):
       1. Кэш по хэшу файла
-      2. MKV stream-copy — PRIMARY: сохраняет оригинальный HEVC битстрим без декодирования.
-         frame_reader делает slow seek на MKV → декодирует P/B-кадры от ближайшего чистого IDR.
-      3. MP4 re-encode libx264 — FALLBACK: только ignore_err (без discardcorrupt),
-         чтобы не выбрасывать пакеты и сохранить все кадры (часть может быть серой).
+      2. PRIMARY по strategy
+      3. FALLBACK (другой метод)
     Возвращает путь к готовому файлу или None.
     """
     os.makedirs(cache_dir, exist_ok=True)
@@ -210,50 +213,59 @@ def convert_h265_to_video(input_path: str, ffmpeg_path: str = "ffmpeg", cache_di
 
     out_path = None
 
-    # 3) PRIMARY: MKV stream-copy — сохраняет оригинальный HEVC битстрим без декодирования.
-    # frame_reader сделает slow seek: fast pre-seek → slow decode 60s window → clean P/B frames.
-    # Corrupted CTU в IDR не "запекаются" в файл, как при libx264 re-encode.
-    logger.info("[MKV] Stream-copy PRIMARY (сохранение HEVC битстрима)...")
-    cmd_mkv = [
-        ffmpeg_path,
-        "-f", "hevc",
-        "-r", str(fps),
-        "-i", ff_input,
-        "-c", "copy",
-        "-y", ff_mkv,
-    ]
-    ok_mkv, stderr_mkv = _run_ffmpeg(cmd_mkv, "MKV")
-    if ok_mkv and _verify_output(mkv_path, "MKV"):
-        logger.info("[MKV] Успешно создан: %s", mkv_path)
-        out_path = mkv_path
-    else:
-        logger.warning("[MKV] Не удалось — переходим к MP4 re-encode. stderr: %s", stderr_mkv[-300:])
+    # Вспомогательные функции для каждого метода
+    def _try_mkv() -> str | None:
+        logger.info("[MKV] Stream-copy (сохранение HEVC битстрима без перекодирования)...")
+        cmd = [
+            ffmpeg_path,
+            "-f", "hevc",
+            "-r", str(fps),
+            "-i", ff_input,
+            "-c", "copy",
+            "-y", ff_mkv,
+        ]
+        ok, stderr = _run_ffmpeg(cmd, "MKV")
+        if ok and _verify_output(mkv_path, "MKV"):
+            logger.info("[MKV] Успешно создан: %s", mkv_path)
+            return mkv_path
+        logger.warning("[MKV] Не удалось. stderr: %s", stderr[-300:])
+        return None
 
-    # 4) FALLBACK: MP4 libx264 re-encode — только ignore_err (без discardcorrupt!).
-    # discardcorrupt выбрасывает пакеты → серые кадры навсегда запекаются в MP4.
-    # ignore_err позволяет продолжать декодирование при cu_qp_delta ошибках.
-    if out_path is None:
-        logger.info("[MP4/libx264] Re-encode FALLBACK (ignore_err, без discardcorrupt)...")
-        cmd_mp4 = [
+    def _try_mp4() -> str | None:
+        logger.info("[MP4/libx264] Re-encode (частые I-frame, нет серых кадров)...")
+        cmd = [
             ffmpeg_path,
             "-err_detect", "ignore_err",
             "-f", "hevc",
             "-r", str(fps),
             "-i", ff_input,
             "-c:v", "libx264",
-            "-preset", "fast",
-            "-crf", "18",
-            "-g", "30",
-            "-keyint_min", "15",
-            "-movflags", "+faststart",
+            "-preset", "veryfast",
+            "-crf", "23",
+            "-g", "50",           # I-frame каждые 2 сек при 25fps
+            "-keyint_min", "25",
             "-y", ff_mp4,
         ]
-        ok_mp4, stderr_mp4 = _run_ffmpeg(cmd_mp4, "MP4/libx264")
-        if ok_mp4 and _verify_output(mp4_path, "MP4/libx264"):
+        ok, stderr = _run_ffmpeg(cmd, "MP4/libx264")
+        if ok and _verify_output(mp4_path, "MP4/libx264"):
             logger.info("[MP4/libx264] Успешно создан: %s", mp4_path)
-            out_path = mp4_path
-        else:
-            logger.error("[MP4/libx264] Не удалось. stderr: %s", stderr_mp4[-300:])
+            return mp4_path
+        logger.warning("[MP4/libx264] Не удалось. stderr: %s", stderr[-300:])
+        return None
+
+    # 3) PRIMARY + FALLBACK по стратегии
+    if strategy == "libx264":
+        logger.info("Стратегия: libx264 PRIMARY -> stream_copy FALLBACK")
+        out_path = _try_mp4()
+        if out_path is None:
+            logger.warning("MP4/libx264 ne udalsia -> probiem MKV stream-copy kak fallback")
+            out_path = _try_mkv()
+    else:
+        logger.info("Стратегия: stream_copy PRIMARY -> libx264 FALLBACK")
+        out_path = _try_mkv()
+        if out_path is None:
+            logger.warning("MKV stream-copy ne udalsia -> probiem MP4/libx264 kak fallback")
+            out_path = _try_mp4()
 
     if out_path is None:
         logger.error("Не удалось конвертировать %s — файл недоступен для обработки", input_path)
