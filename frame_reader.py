@@ -23,13 +23,15 @@ def _is_raw_hevc(path: str) -> bool:
     return path.lower().endswith((".h265", ".hevc"))
 
 
-def _get_hwaccel_flags() -> list:
+def _get_hwaccel_flags(video_path: str = "") -> list:
     """
     Возвращает флаги аппаратного декодирования для текущей платформы.
-    На Windows: D3D11VA — аппаратный декодер HEVC с error concealment.
-    Corrupted CTU не приводят к зелёному/серому кадру — декодер маскирует артефакты.
+    На Windows: D3D11VA только для raw HEVC (.h265/.hevc) — аппаратный декодер
+    с error concealment для corrupted CTU.
+    Для MP4/H.264 (libx264) d3d11va НЕ применяется: он не нужен и может
+    возвращать 0 байт при seek в середину файла.
     """
-    if platform.system() == "Windows":
+    if platform.system() == "Windows" and _is_raw_hevc(video_path):
         return ["-hwaccel", "d3d11va"]
     return []
 
@@ -41,7 +43,7 @@ def ffprobe_get_resolution(path: str, ffmpeg_path: str = "ffmpeg") -> tuple[int,
     Кэширует результат.
     """
     if path in _resolution_cache:
-        logger.debug("ffprobe_get_resolution: кэш для %s → %s", path, _resolution_cache[path])
+        logger.debug("ffprobe_get_resolution: кэш для %s -> %s", path, _resolution_cache[path])
         return _resolution_cache[path]
 
     import os as _os
@@ -83,7 +85,7 @@ def ffprobe_get_resolution(path: str, ffmpeg_path: str = "ffmpeg") -> tuple[int,
         logger.warning("ffprobe_get_resolution: не определено для %s, fallback 1920x1080", path)
         wh = (1920, 1080)
 
-    logger.debug("ffprobe_get_resolution: %s → %dx%d", path, wh[0], wh[1])
+    logger.debug("ffprobe_get_resolution: %s -> %dx%d", path, wh[0], wh[1])
     _resolution_cache[path] = wh
     return wh
 
@@ -242,7 +244,7 @@ def get_frame_ffmpeg(
     Если fps аномальный (>500, NVR без timestamps): выбор по номеру кадра
     с перебором frame_idx, frame_idx+1, ..., frame_idx+30 до чистого.
 
-    Если fps нормальный: 3-уровневый seek retry (fast→slow→nearby±20s).
+    Если fps нормальный: 3-уровневый seek retry (fast->slow->nearby±20s).
 
     На Windows добавляет D3D11VA для аппаратного HEVC декодирования.
     """
@@ -253,13 +255,13 @@ def get_frame_ffmpeg(
     if _is_raw_hevc(video_path):
         extra_input_flags = ["-f", "hevc"]
 
-    hwaccel = _get_hwaccel_flags()
+    hwaccel = _get_hwaccel_flags(video_path)
     if hwaccel:
         logger.info("get_frame_ffmpeg: аппаратное декодирование %s idx=%d", hwaccel, frame_idx)
 
-    # Аномальный fps → NVR без нормальных timestamps, используем выбор по номеру кадра
+    # Аномальный fps -> NVR без нормальных timestamps, используем выбор по номеру кадра
     if fps > _ABNORMAL_FPS_THRESHOLD:
-        logger.info("get_frame_ffmpeg: аномальный fps=%.0f → frame-select idx=%d", fps, frame_idx)
+        logger.info("get_frame_ffmpeg: аномальный fps=%.0f -> frame-select idx=%d", fps, frame_idx)
         for n in range(frame_idx, frame_idx + 30):
             cmd = _build_frame_select_cmd(ffmpeg_path, video_path, n, extra_input_flags, hwaccel)
             ok, frame = _run_frame_cmd(cmd, n, float(n), frame_size, width, height, f"fsel-n{n}")
@@ -279,7 +281,7 @@ def get_frame_ffmpeg(
         return True, frame
 
     # Tier 2: slow seek with 60s pre-seek window
-    logger.info("get_frame_ffmpeg: fast blank → slow-seek(60s) idx=%d t=%.3fs", frame_idx, timestamp)
+    logger.info("get_frame_ffmpeg: fast blank -> slow-seek(60s) idx=%d t=%.3fs", frame_idx, timestamp)
     cmd = _build_seek_cmd(ffmpeg_path, video_path, timestamp, extra_input_flags,
                           slow_seek=True, pre_seek_s=60.0, hwaccel_flags=hwaccel)
     ok, frame = _run_frame_cmd(cmd, frame_idx, timestamp, frame_size, width, height, "slow-60s")
@@ -291,12 +293,12 @@ def get_frame_ffmpeg(
         ts_alt = max(0.0, timestamp + dt)
         if abs(ts_alt - timestamp) < 1.0:
             continue
-        logger.info("get_frame_ffmpeg: nearby dt=%+ds → ts=%.3fs idx=%d", dt, ts_alt, frame_idx)
+        logger.info("get_frame_ffmpeg: nearby dt=%+ds -> ts=%.3fs idx=%d", dt, ts_alt, frame_idx)
         cmd = _build_seek_cmd(ffmpeg_path, video_path, ts_alt, extra_input_flags,
                               slow_seek=True, pre_seek_s=60.0, hwaccel_flags=hwaccel)
         ok, frame = _run_frame_cmd(cmd, frame_idx, ts_alt, frame_size, width, height, f"nearby{dt:+d}s")
         if ok:
-            logger.info("get_frame_ffmpeg: чистый кадр найден dt=%+ds (t=%.3f→%.3f) idx=%d",
+            logger.info("get_frame_ffmpeg: чистый кадр найден dt=%+ds (t=%.3f->%.3f) idx=%d",
                         dt, timestamp, ts_alt, frame_idx)
             return True, frame
 
