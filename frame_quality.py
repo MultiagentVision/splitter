@@ -5,8 +5,15 @@ import numpy as np
 
 logger = logging.getLogger(__name__)
 
+# Глобальный порог noisy_row_frac. Можно переопределить из pipeline.py через
+# frame_quality.NOISY_ROW_FRAC_MAX = N перед запуском обработки.
+# 0.15 — стандарт (raw H.265 decode artifacts).
+# 1.0 — отключить проверку (interlaced surveillance camera, libx264).
+NOISY_ROW_FRAC_MAX: float = 0.15
 
-def is_frame_corrupted(frame, threshold, *, verbose: bool = False):
+
+def is_frame_corrupted(frame, threshold, *, verbose: bool = False,
+                       noisy_row_frac_max: float | None = None):
     """
     Эвристика для определения "битого" кадра.
     Работает на уменьшенной копии кадра, чтобы снизить нагрузку на CPU.
@@ -16,7 +23,13 @@ def is_frame_corrupted(frame, threshold, *, verbose: bool = False):
     - почти чёрный или почти белый кадр
     - однотонный кадр (серый, зелёный и т.п. - H.265 decode artifacts)
     - высокую долю "шумных" строк (частичный decode garbage)
+
+    noisy_row_frac_max: порог для доли зашумлённых строк.
+        None — использовать глобальный NOISY_ROW_FRAC_MAX (по умолчанию 0.15).
+        1.0 — отключить (interlaced surveillance camera, libx264).
     """
+    if noisy_row_frac_max is None:
+        noisy_row_frac_max = NOISY_ROW_FRAC_MAX
     if frame is None:
         if verbose:
             logger.debug("is_frame_corrupted: frame is None → True")
@@ -58,10 +71,9 @@ def is_frame_corrupted(frame, threshold, *, verbose: bool = False):
     if not np.isnan(diff_rows) and diff_rows > effective_threshold:
         corrupted = True
         reason = f"diff_rows={diff_rows:.1f} > {effective_threshold:.1f}"
-    elif noisy_row_frac > 0.15:
+    elif noisy_row_frac > noisy_row_frac_max:
         corrupted = True
-        reason = f"noisy_row_frac={noisy_row_frac:.2f} > 0.15"
-    elif mean_val < 10 or mean_val > 245:
+        reason = f"noisy_row_frac={noisy_row_frac:.2f} > {noisy_row_frac_max:.2f}"    elif mean_val < 10 or mean_val > 245:
         corrupted = True
         reason = f"mean_val={mean_val:.1f} (near black/white)"
     elif ch_std < 6.0:

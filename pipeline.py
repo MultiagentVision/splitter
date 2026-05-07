@@ -250,6 +250,10 @@ def extract_frames_for_video(args):
     quality = config.get("quality_level", "medium")
     thresholds = config.get("quality_thresholds", {"low": 60, "medium": 35, "high": 20})
     threshold = thresholds.get(quality, 35)
+    # noisy_row_frac_max: 0.15 (default) для H.265; 1.0 для интерлейс/libx264 surveillance
+    noisy_row_frac_max = config.get("noisy_row_frac_max", 0.15)
+    import frame_quality as _fq
+    _fq.NOISY_ROW_FRAC_MAX = noisy_row_frac_max
 
     logger.info(f"Качество={quality}, порог={threshold}")
     logger.info(f"Декодер: {'ffmpeg' if use_ffmpeg else 'opencv'}")
