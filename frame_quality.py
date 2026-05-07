@@ -73,7 +73,8 @@ def is_frame_corrupted(frame, threshold, *, verbose: bool = False,
         reason = f"diff_rows={diff_rows:.1f} > {effective_threshold:.1f}"
     elif noisy_row_frac > noisy_row_frac_max:
         corrupted = True
-        reason = f"noisy_row_frac={noisy_row_frac:.2f} > {noisy_row_frac_max:.2f}"    elif mean_val < 10 or mean_val > 245:
+        reason = f"noisy_row_frac={noisy_row_frac:.2f} > {noisy_row_frac_max:.2f}"
+    elif mean_val < 10 or mean_val > 245:
         corrupted = True
         reason = f"mean_val={mean_val:.1f} (near black/white)"
     elif ch_std < 6.0:
